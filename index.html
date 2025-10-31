@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Indoor Navigation and Product Finder for Grocery Stores - Find products quickly and easily">
+    <title>Store Navigator - Product Finder</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Main Container -->
+    <div class="container">
+        
+        <!-- Header Section -->
+        <header class="app-header">
+            <h1 class="app-title">Store Navigator</h1>
+            <p class="app-subtitle">Find products in your grocery store</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            
+            <!-- Search Section -->
+            <section class="search-section" aria-label="Product Search">
+                <div class="search-container">
+                    <label for="product-search" class="visually-hidden">Search for products</label>
+                    <div class="search-input-wrapper">
+                        <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                        <input 
+                            type="search" 
+                            id="product-search" 
+                            class="search-input" 
+                            placeholder="Search for products..."
+                            autocomplete="off"
+                            aria-label="Search for products in the store"
+                        >
+                        <button 
+                            type="button" 
+                            class="clear-button" 
+                            id="clear-search"
+                            aria-label="Clear search"
+                            style="display: none;"
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Category Section -->
+            <section class="category-section" aria-label="Product Categories">
+                <h2 class="section-title">Browse by Category</h2>
+                
+                <div class="category-grid">
+                    <!-- Fruits Category -->
+                    <button 
+                        class="category-card" 
+                        data-category="fruits"
+                        aria-label="Browse Fruits category"
+                    >
+                        <span class="category-icon" role="img" aria-label="Fruits">🍎</span>
+                        <span class="category-name">Fruits</span>
+                    </button>
+
+                    <!-- Dairy Category -->
+                    <button 
+                        class="category-card" 
+                        data-category="dairy"
+                        aria-label="Browse Dairy category"
+                    >
+                        <span class="category-icon" role="img" aria-label="Dairy">🥛</span>
+                        <span class="category-name">Dairy</span>
+                    </button>
+
+                    <!-- Meat Category -->
+                    <button 
+                        class="category-card" 
+                        data-category="meat"
+                        aria-label="Browse Meat category"
+                    >
+                        <span class="category-icon" role="img" aria-label="Meat">🥩</span>
+                        <span class="category-name">Meat</span>
+                    </button>
+
+                    <!-- Fish Category -->
+                    <button 
+                        class="category-card" 
+                        data-category="fish"
+                        aria-label="Browse Fish category"
+                    >
+                        <span class="category-icon" role="img" aria-label="Fish">🐟</span>
+                        <span class="category-name">Fish</span>
+                    </button>
+
+                    <!-- Snacks Category -->
+                    <button 
+                        class="category-card" 
+                        data-category="snacks"
+                        aria-label="Browse Snacks category"
+                    >
+                        <span class="category-icon" role="img" aria-label="Snacks">🍿</span>
+                        <span class="category-name">Snacks</span>
+                    </button>
+
+                    <!-- Beverages Category -->
+                    <button 
+                        class="category-card" 
+                        data-category="beverages"
+                        aria-label="Browse Beverages category"
+                    >
+                        <span class="category-icon" role="img" aria-label="Beverages">🥤</span>
+                        <span class="category-name">Beverages</span>
+                    </button>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer (Optional) -->
+        <footer class="app-footer">
+            <p class="footer-text">Powered by Visual SLAM Indoor Navigation</p>
+        </footer>
+
+    </div>
+
+    <!-- JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>
