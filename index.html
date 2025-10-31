@@ -85,6 +85,44 @@
                 </div>
             </section>
 
+            <!-- Navigation Screen -->
+            <section class="navigation-section" id="navigation-section" aria-label="Navigation" style="display: none;">
+                <div class="navigation-header">
+                    <button class="nav-back-button" id="nav-back-button" aria-label="Go back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 12H5M12 19l-7-7 7-7"/>
+                        </svg>
+                    </button>
+                    <div class="navigation-title">
+                        <h2 class="nav-product-name" id="nav-product-name">Navigating to: Product</h2>
+                    </div>
+                </div>
+
+                <div class="location-status">
+                    <div class="status-item current-location">
+                        <span class="location-icon">📍</span>
+                        <span class="location-text">You are here: <strong id="current-location-text">Entrance</strong></span>
+                    </div>
+                    <div class="status-item destination-location">
+                        <span class="location-icon">🎯</span>
+                        <span class="location-text">Destination: <strong id="destination-text">Aisle 7</strong></span>
+                    </div>
+                </div>
+
+                <div class="map-container">
+                    <div class="store-map" id="store-map">
+                        <!-- Map will be dynamically generated -->
+                    </div>
+                </div>
+
+                <div class="directions-container">
+                    <h3 class="directions-title">Turn-by-Turn Directions</h3>
+                    <div class="directions-list" id="directions-list">
+                        <!-- Directions will be dynamically generated -->
+                    </div>
+                </div>
+            </section>
+
         </main>
 
     </div>

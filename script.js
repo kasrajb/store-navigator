@@ -203,11 +203,36 @@ const groceryCategories = {
 };
 
 // ============================================
+// NAVIGATION DATA
+// ============================================
+
+const navigationData = {
+    currentLocation: "Entrance",
+    aisles: [
+        { number: 7, label: "Aisle 7" },
+        { number: 6, label: "Aisle 6" },
+        { number: 5, label: "Aisle 5" },
+        { number: 4, label: "Aisle 4" },
+        { number: 3, label: "Aisle 3" },
+        { number: 2, label: "Aisle 2" },
+        { number: 1, label: "Aisle 1" },
+        { number: 0, label: "Entrance" }
+    ],
+    directions: [
+        { step: 1, action: "Walk straight ahead", distance: "30m", icon: "🚶" },
+        { step: 2, action: "Turn right at Aisle 5", distance: "", icon: "↪️" },
+        { step: 3, action: "Continue straight", distance: "15m", icon: "🚶" },
+        { step: 4, action: "Your product is on the right side, Section C", distance: "", icon: "🎯" }
+    ]
+};
+
+// ============================================
 // STATE MANAGEMENT
 // ============================================
 
-let currentView = 'main'; // 'main' or 'subcategory'
+let currentView = 'main'; // 'main', 'subcategory', or 'navigation'
 let currentCategory = null;
+let currentSubcategory = null;
 
 // ============================================
 // DOM ELEMENTS
@@ -223,6 +248,13 @@ const subcategoryTitle = document.getElementById('subcategory-title');
 const breadcrumbNav = document.getElementById('breadcrumb');
 const breadcrumbTrail = document.getElementById('breadcrumb-trail');
 const backButton = document.getElementById('back-button');
+const navigationSection = document.getElementById('navigation-section');
+const navBackButton = document.getElementById('nav-back-button');
+const navProductName = document.getElementById('nav-product-name');
+const currentLocationText = document.getElementById('current-location-text');
+const destinationText = document.getElementById('destination-text');
+const storeMap = document.getElementById('store-map');
+const directionsList = document.getElementById('directions-list');
 
 // ============================================
 // INITIALIZATION
@@ -402,26 +434,26 @@ function handleMainCategoryClick(categoryName) {
  */
 function handleSubcategoryClick(categoryName, subcategoryName, element) {
     console.log('Selected:', categoryName, '>', subcategoryName);
+    console.log('Navigating to:', subcategoryName);
     
-    // Remove active class from all subcategory cards
-    document.querySelectorAll('#subcategory-grid .category-card').forEach(card => {
-        card.classList.remove('active');
-    });
+    currentView = 'navigation';
+    currentSubcategory = subcategoryName;
     
-    // Add active class to clicked card
-    element.classList.add('active');
+    // Generate navigation screen
+    generateNavigationScreen(categoryName, subcategoryName);
+    
+    // Switch to navigation view
+    switchView('navigation');
     
     // Haptic feedback
     if ('vibrate' in navigator) {
         navigator.vibrate(30);
     }
     
-    logAnalytics('subcategory_selected', {
+    logAnalytics('navigation_started', {
         category: categoryName,
         subcategory: subcategoryName
     });
-    
-    // TODO: Display products for this subcategory (future implementation)
 }
 
 /**
@@ -441,21 +473,41 @@ function handleBackClick() {
 // Set up back button listener
 backButton.addEventListener('click', handleBackClick);
 
+/**
+ * Handle navigation back button click
+ */
+function handleNavBackClick() {
+    console.log('Navigating back to subcategories');
+    
+    currentView = 'subcategory';
+    currentSubcategory = null;
+    
+    switchView('subcategory');
+    
+    logAnalytics('navigation_back', { from: 'navigation', to: 'subcategory' });
+}
+
+// Set up navigation back button listener
+navBackButton.addEventListener('click', handleNavBackClick);
+
 // ============================================
 // VIEW MANAGEMENT
 // ============================================
 
 /**
- * Switch between main categories and subcategories view
+ * Switch between views
  */
 function switchView(view) {
     if (view === 'subcategory') {
-        // Hide main categories
+        // Hide main categories and navigation
         mainCategoriesSection.classList.add('fade-out');
+        navigationSection.classList.add('fade-out');
         
         setTimeout(() => {
             mainCategoriesSection.style.display = 'none';
             mainCategoriesSection.classList.remove('fade-out');
+            navigationSection.style.display = 'none';
+            navigationSection.classList.remove('fade-out');
             
             // Show subcategories
             subcategorySection.style.display = 'block';
@@ -470,13 +522,16 @@ function switchView(view) {
         }, 200);
         
     } else if (view === 'main') {
-        // Hide subcategories
+        // Hide subcategories and navigation
         subcategorySection.classList.add('fade-out');
         breadcrumbNav.classList.add('fade-out');
+        navigationSection.classList.add('fade-out');
         
         setTimeout(() => {
             subcategorySection.style.display = 'none';
             subcategorySection.classList.remove('fade-out');
+            navigationSection.style.display = 'none';
+            navigationSection.classList.remove('fade-out');
             
             breadcrumbNav.style.display = 'none';
             breadcrumbNav.classList.remove('fade-out');
@@ -487,6 +542,28 @@ function switchView(view) {
             
             // Update breadcrumb
             updateBreadcrumb(['Home']);
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }, 200);
+        
+    } else if (view === 'navigation') {
+        // Hide main categories and subcategories
+        mainCategoriesSection.classList.add('fade-out');
+        subcategorySection.classList.add('fade-out');
+        breadcrumbNav.classList.add('fade-out');
+        
+        setTimeout(() => {
+            mainCategoriesSection.style.display = 'none';
+            mainCategoriesSection.classList.remove('fade-out');
+            subcategorySection.style.display = 'none';
+            subcategorySection.classList.remove('fade-out');
+            breadcrumbNav.style.display = 'none';
+            breadcrumbNav.classList.remove('fade-out');
+            
+            // Show navigation
+            navigationSection.style.display = 'flex';
+            navigationSection.classList.add('fade-in');
             
             // Scroll to top
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -508,6 +585,99 @@ function updateBreadcrumb(items) {
         }
         span.textContent = item;
         breadcrumbTrail.appendChild(span);
+    });
+}
+
+// ============================================
+// NAVIGATION SCREEN GENERATION
+// ============================================
+
+/**
+ * Generate navigation screen content
+ */
+function generateNavigationScreen(categoryName, subcategoryName) {
+    // Update header
+    navProductName.textContent = `Navigating to: ${subcategoryName}`;
+    
+    // Update location status
+    currentLocationText.textContent = navigationData.currentLocation;
+    destinationText.textContent = `${subcategoryName} - Aisle 7`;
+    
+    // Generate store map
+    generateStoreMap();
+    
+    // Generate directions
+    generateDirections(subcategoryName);
+}
+
+/**
+ * Generate store map visualization
+ */
+function generateStoreMap() {
+    storeMap.innerHTML = '';
+    
+    // Create placeholder for 3D map
+    const mapPlaceholder = document.createElement('div');
+    mapPlaceholder.className = 'map-placeholder';
+    
+    const mapImage = document.createElement('img');
+    mapImage.className = 'map-image';
+    mapImage.src = 'image.png';
+    mapImage.alt = 'Store Layout Map';
+    
+    mapPlaceholder.appendChild(mapImage);
+    
+    storeMap.appendChild(mapPlaceholder);
+}
+
+/**
+ * Generate turn-by-turn directions
+ */
+function generateDirections(productName) {
+    directionsList.innerHTML = '';
+    
+    navigationData.directions.forEach((direction, index) => {
+        const stepDiv = document.createElement('div');
+        stepDiv.className = 'direction-step';
+        
+        // Mark final step
+        if (index === navigationData.directions.length - 1) {
+            stepDiv.classList.add('final');
+        }
+        
+        // Step number
+        const stepNumber = document.createElement('div');
+        stepNumber.className = 'step-number';
+        stepNumber.textContent = direction.step;
+        
+        // Step icon
+        const stepIcon = document.createElement('div');
+        stepIcon.className = 'step-icon';
+        stepIcon.textContent = direction.icon;
+        
+        // Step content
+        const stepContent = document.createElement('div');
+        stepContent.className = 'step-content';
+        
+        const stepAction = document.createElement('div');
+        stepAction.className = 'step-action';
+        stepAction.textContent = direction.action;
+        
+        stepContent.appendChild(stepAction);
+        
+        if (direction.distance) {
+            const stepDistance = document.createElement('div');
+            stepDistance.className = 'step-distance';
+            stepDistance.textContent = direction.distance;
+            stepContent.appendChild(stepDistance);
+        }
+        
+        // Append all elements
+        stepDiv.appendChild(stepNumber);
+        stepDiv.appendChild(stepIcon);
+        stepDiv.appendChild(stepContent);
+        
+        directionsList.appendChild(stepDiv);
     });
 }
 
