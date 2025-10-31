@@ -316,6 +316,7 @@ This project is created for educational purposes as part of ECSE 542 coursework.
 
 ## 👥 Credits
 
+- **Developer**: Kasra Jabbari
 - **Project**: ECSE 542 - Indoor Navigation System
 - **Implementation**: Milestone #2 - First Screen Development
 - **Design Based On**: Milestone #1 Report sketches and requirements
