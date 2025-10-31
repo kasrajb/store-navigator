@@ -320,6 +320,32 @@ body {
     font-size: var(--font-size-sm);
     color: var(--text-secondary);
     font-weight: 400;
+    margin-bottom: var(--spacing-xs);
+}
+
+.footer-link {
+    font-size: var(--font-size-sm);
+    margin-top: var(--spacing-xs);
+}
+
+.footer-link a {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+    display: inline-block;
+}
+
+.footer-link a:hover {
+    background-color: var(--primary-light);
+    color: var(--primary-hover);
+}
+
+.footer-link a:focus {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
 }
 
 /* ============================================

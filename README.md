@@ -1,5 +1,13 @@
 # Store Navigator - Indoor Navigation and Product Finder
 
+## 🌐 Live Demo
+
+**[https://kasrajb.github.io/store-navigator/](https://kasrajb.github.io/store-navigator/)**
+
+Test the application on your mobile device or desktop browser!
+
+---
+
 ## Overview
 
 **Store Navigator** is a smartphone-based indoor navigation system designed to help users locate products in unfamiliar grocery stores using Visual SLAM (Simultaneous Localization and Mapping) technology. This web application provides the initial search and category selection interface, prioritizing minimal user effort and multimodal feedback for an accessible, efficient navigation experience.
