@@ -269,8 +269,6 @@ const backButton = document.getElementById('back-button');
 const navigationSection = document.getElementById('navigation-section');
 const navBackButton = document.getElementById('nav-back-button');
 const navProductName = document.getElementById('nav-product-name');
-const currentLocationText = document.getElementById('current-location-text');
-const destinationText = document.getElementById('destination-text');
 const storeMap = document.getElementById('store-map');
 const directionsList = document.getElementById('directions-list');
 
@@ -616,10 +614,6 @@ function updateBreadcrumb(items) {
 function generateNavigationScreen(categoryName, subcategoryName) {
     // Update header
     navProductName.textContent = `Navigating to: ${subcategoryName}`;
-    
-    // Update location status
-    currentLocationText.textContent = navigationData.currentLocation;
-    destinationText.textContent = `${subcategoryName} - Aisle 7`;
     
     // Generate store map
     generateStoreMap();
