@@ -1050,19 +1050,6 @@ body {
     font-family: 'Courier New', monospace;
 }
 
-/* Detected Objects */
-.detected-objects {
-    background-color: white;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-md);
-    font-size: var(--font-size-sm);
-    color: var(--text-primary);
-    line-height: 1.6;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-}
-
 /* Result Metadata */
 .result-metadata {
     margin-top: var(--spacing-md);
@@ -1070,25 +1057,29 @@ body {
     border-top: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
 }
 
 .metadata-item {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     font-size: var(--font-size-sm);
+    padding: var(--spacing-xs) 0;
 }
 
 .metadata-label {
     color: var(--text-secondary);
     font-weight: 500;
+    min-width: 120px;
 }
 
 .metadata-value {
     color: var(--text-primary);
     font-weight: 600;
     font-family: 'Courier New', monospace;
+    text-align: right;
+    flex: 1;
 }
 
 /* Error Display */

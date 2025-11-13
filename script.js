@@ -1059,18 +1059,13 @@ function displayLocalizationResults(result) {
     document.getElementById('position-y').textContent = localization.position.y.toFixed(2) + ' m';
     document.getElementById('position-z').textContent = localization.position.z.toFixed(2) + ' m';
     
-    // Update orientation data (convert radians to degrees for display)
+    // Update orientation data as a single formatted string
     const rollDeg = (localization.orientation.roll * 180 / Math.PI).toFixed(1);
     const pitchDeg = (localization.orientation.pitch * 180 / Math.PI).toFixed(1);
     const yawDeg = (localization.orientation.yaw * 180 / Math.PI).toFixed(1);
     
-    document.getElementById('orientation-roll').textContent = rollDeg + '°';
-    document.getElementById('orientation-pitch').textContent = pitchDeg + '°';
-    document.getElementById('orientation-yaw').textContent = yawDeg + '°';
-    
-    // Update detected objects
-    const detectedObjectsText = localization.detected_objects || 'No objects detected';
-    document.getElementById('detected-objects').textContent = detectedObjectsText;
+    const orientationText = `Roll: ${rollDeg}°, Pitch: ${pitchDeg}°, Yaw: ${yawDeg}°`;
+    document.getElementById('orientation-values').textContent = orientationText;
     
     // Update metadata
     document.getElementById('picture-id').textContent = localization.picture_id;
