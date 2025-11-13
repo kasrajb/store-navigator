@@ -232,7 +232,7 @@ const navigationData = {
 
 // Backend API configuration
 const API_CONFIG = {
-    BASE_URL: 'https://a16e58e64bb948.lhr.life',  // Backend via localhost.run tunnel
+    BASE_URL: 'https://primary-musicians-trips-hair.trycloudflare.com',  // Backend via Cloudflare Tunnel
     ENDPOINTS: {
         SEARCH_AND_LOCALIZE: '/search-and-localize',
         LOCALIZE: '/localize',
