@@ -43,6 +43,24 @@ Store Navigator is a smartphone-based indoor navigation system that helps users 
   - Final destination marker
 - Smooth transitions between screens
 
+#### 4. **📍 Photo-Based Localization (NEW!)**
+- **Localize Me Button**: Capture a photo to determine your position in the store
+- **Camera Integration**: Uses device camera (or file upload on desktop)
+- **Real-time Processing**: Connects to RTAB-Map backend for visual localization
+- **Detailed Results Display**:
+  - Position coordinates (X, Y, Z) in meters
+  - Orientation angles (Roll, Pitch, Yaw) in degrees
+  - Detected objects in the current scene
+  - Processing time and timestamp
+- **Error Handling**: User-friendly error messages with retry functionality
+
+> **Note for Testing Localization:** The photo-based localization feature requires a local backend server. To test this feature:
+> 1. Download the repository
+> 2. Start the backend server (requires Docker)
+> 3. Open `index.html` locally in your browser
+> 
+> The live GitHub Pages demo shows the UI but cannot connect to a local backend due to browser security restrictions.
+
 #### 4. **Search Functionality**
 - Prominent search bar with magnifying glass icon
 - Real-time search input handling
