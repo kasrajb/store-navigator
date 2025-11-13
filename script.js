@@ -232,7 +232,7 @@ const navigationData = {
 
 // Backend API configuration
 const API_CONFIG = {
-    BASE_URL: 'http://localhost:8040',  // FastAPI backend URL
+    BASE_URL: 'https://a16e58e64bb948.lhr.life',  // Backend via localhost.run tunnel
     ENDPOINTS: {
         SEARCH_AND_LOCALIZE: '/search-and-localize',
         LOCALIZE: '/localize',
