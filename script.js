@@ -232,7 +232,7 @@ const navigationData = {
 
 // Backend API configuration
 const API_CONFIG = {
-    BASE_URL: 'https://understand-tracks-sms-gnu.trycloudflare.com',  // Backend via Cloudflare Tunnel
+    BASE_URL: 'https://pulled-airports-dear-matt.trycloudflare.com',  // Backend via Cloudflare Tunnel
     ENDPOINTS: {
         SEARCH_AND_LOCALIZE: '/search-and-localize',
         LOCALIZE: '/localize',
