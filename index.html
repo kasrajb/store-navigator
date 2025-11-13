@@ -121,6 +121,114 @@
                         <!-- Directions will be dynamically generated -->
                     </div>
                 </div>
+
+                <!-- Localization Section -->
+                <div class="localization-container">
+                    <h3 class="localization-title">📍 Find Your Location</h3>
+                    <p class="localization-description">Take a photo to localize yourself in the store</p>
+                    
+                    <!-- Hidden file input for camera capture -->
+                    <input 
+                        type="file" 
+                        id="camera-input" 
+                        accept="image/jpeg,image/png,image/bmp" 
+                        capture="environment" 
+                        style="display: none;"
+                    >
+                    
+                    <!-- Localize Me Button -->
+                    <button class="localize-button" id="localize-button" aria-label="Capture photo to localize your position">
+                        <svg class="camera-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                        <span>Localize Me</span>
+                    </button>
+
+                    <!-- Loading Spinner (hidden by default) -->
+                    <div class="loading-spinner" id="loading-spinner" style="display: none;">
+                        <div class="spinner"></div>
+                        <p class="loading-text">Processing your location...</p>
+                    </div>
+
+                    <!-- Localization Results Display -->
+                    <div class="localization-results" id="localization-results" style="display: none;">
+                        <h4 class="results-header">
+                            <span class="status-badge" id="status-badge">✓ Success</span>
+                            Localization Results
+                        </h4>
+                        
+                        <!-- Position Data -->
+                        <div class="result-section">
+                            <h5 class="section-title">📌 Your Position</h5>
+                            <div class="data-grid">
+                                <div class="data-item">
+                                    <span class="data-label">X:</span>
+                                    <span class="data-value" id="position-x">--</span>
+                                </div>
+                                <div class="data-item">
+                                    <span class="data-label">Y:</span>
+                                    <span class="data-value" id="position-y">--</span>
+                                </div>
+                                <div class="data-item">
+                                    <span class="data-label">Z:</span>
+                                    <span class="data-value" id="position-z">--</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Orientation Data -->
+                        <div class="result-section">
+                            <h5 class="section-title">🧭 Orientation</h5>
+                            <div class="data-grid">
+                                <div class="data-item">
+                                    <span class="data-label">Roll:</span>
+                                    <span class="data-value" id="orientation-roll">--</span>
+                                </div>
+                                <div class="data-item">
+                                    <span class="data-label">Pitch:</span>
+                                    <span class="data-value" id="orientation-pitch">--</span>
+                                </div>
+                                <div class="data-item">
+                                    <span class="data-label">Yaw:</span>
+                                    <span class="data-value" id="orientation-yaw">--</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Detected Objects -->
+                        <div class="result-section">
+                            <h5 class="section-title">👁️ Detected Objects</h5>
+                            <p class="detected-objects" id="detected-objects">--</p>
+                        </div>
+
+                        <!-- Metadata -->
+                        <div class="result-metadata">
+                            <div class="metadata-item">
+                                <span class="metadata-label">Picture ID:</span>
+                                <span class="metadata-value" id="picture-id">--</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span class="metadata-label">Processing Time:</span>
+                                <span class="metadata-value" id="processing-time">--</span>
+                            </div>
+                            <div class="metadata-item">
+                                <span class="metadata-label">Timestamp:</span>
+                                <span class="metadata-value" id="timestamp">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Error Display -->
+                    <div class="localization-error" id="localization-error" style="display: none;">
+                        <h4 class="error-header">
+                            <span class="status-badge error">✗ Error</span>
+                            Localization Failed
+                        </h4>
+                        <p class="error-message" id="error-message">--</p>
+                        <button class="retry-button" id="retry-button">Try Again</button>
+                    </div>
+                </div>
             </section>
 
         </main>

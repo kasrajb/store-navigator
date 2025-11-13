@@ -227,6 +227,24 @@ const navigationData = {
 };
 
 // ============================================
+// API CONFIGURATION
+// ============================================
+
+// Backend API configuration
+const API_CONFIG = {
+    BASE_URL: 'http://localhost:8040',  // FastAPI backend URL
+    ENDPOINTS: {
+        SEARCH_AND_LOCALIZE: '/search-and-localize',
+        LOCALIZE: '/localize',
+        SEARCH: '/search',
+        STATUS: '/status'
+    },
+    TIMEOUT: 30000,  // 30 seconds timeout
+    MAX_FILE_SIZE: 10 * 1024 * 1024,  // 10 MB in bytes
+    ALLOWED_TYPES: ['image/jpeg', 'image/png', 'image/bmp', 'image/jpg']
+};
+
+// ============================================
 // STATE MANAGEMENT
 // ============================================
 
@@ -608,6 +626,12 @@ function generateNavigationScreen(categoryName, subcategoryName) {
     
     // Generate directions
     generateDirections(subcategoryName);
+    
+    // Initialize localization handlers (camera, buttons, etc.)
+    // Use setTimeout to ensure DOM elements are fully rendered
+    setTimeout(() => {
+        initializeLocalizationHandlers();
+    }, 100);
 }
 
 /**
@@ -814,3 +838,337 @@ if (document.readyState === 'loading') {
 } else {
     init();
 }
+
+// ============================================
+// LOCALIZATION FUNCTIONALITY
+// ============================================
+
+/**
+ * Initialize localization button and camera input handlers
+ * Called when navigation screen is generated
+ */
+function initializeLocalizationHandlers() {
+    const localizeButton = document.getElementById('localize-button');
+    const cameraInput = document.getElementById('camera-input');
+    const retryButton = document.getElementById('retry-button');
+    
+    if (!localizeButton || !cameraInput) {
+        console.warn('Localization elements not found - may not be on navigation screen');
+        return;
+    }
+    
+    // Handle "Localize Me" button click - trigger camera/file input
+    localizeButton.addEventListener('click', handleLocalizeButtonClick);
+    
+    // Handle camera input change - process captured image
+    cameraInput.addEventListener('change', handleCameraInputChange);
+    
+    // Handle retry button click
+    if (retryButton) {
+        retryButton.addEventListener('click', handleRetryButtonClick);
+    }
+    
+    console.log('Localization handlers initialized');
+}
+
+/**
+ * Handle "Localize Me" button click
+ * Triggers the camera/file input
+ */
+function handleLocalizeButtonClick() {
+    const cameraInput = document.getElementById('camera-input');
+    
+    if (!cameraInput) {
+        console.error('Camera input element not found');
+        return;
+    }
+    
+    // Trigger the file input which will open camera on mobile devices
+    cameraInput.click();
+    
+    // Haptic feedback
+    if ('vibrate' in navigator) {
+        navigator.vibrate(30);
+    }
+    
+    logAnalytics('localize_button_clicked', {
+        timestamp: new Date().toISOString()
+    });
+}
+
+/**
+ * Handle camera input change (file selected/photo captured)
+ * Validates the file and sends it to the backend
+ */
+async function handleCameraInputChange(event) {
+    const file = event.target.files[0];
+    
+    if (!file) {
+        console.log('No file selected');
+        return;
+    }
+    
+    console.log('File selected:', file.name, 'Type:', file.type, 'Size:', file.size);
+    
+    // Validate file type
+    if (!API_CONFIG.ALLOWED_TYPES.includes(file.type)) {
+        showLocalizationError(
+            `Invalid image format. Please use JPEG, PNG, or BMP. Selected: ${file.type}`
+        );
+        return;
+    }
+    
+    // Validate file size
+    if (file.size > API_CONFIG.MAX_FILE_SIZE) {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+        const maxSizeMB = (API_CONFIG.MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
+        showLocalizationError(
+            `Image too large. Maximum size: ${maxSizeMB} MB. Your image: ${sizeMB} MB`
+        );
+        return;
+    }
+    
+    // File is valid - proceed with localization
+    await performLocalization(file);
+    
+    // Reset the input so the same file can be selected again
+    event.target.value = '';
+}
+
+/**
+ * Handle retry button click
+ * Clears error and allows user to try again
+ */
+function handleRetryButtonClick() {
+    hideLocalizationError();
+    handleLocalizeButtonClick();
+}
+
+/**
+ * Send the captured image to the backend for localization
+ * @param {File} imageFile - The captured image file
+ */
+async function performLocalization(imageFile) {
+    console.log('Starting localization process...');
+    
+    // Show loading state
+    showLoadingSpinner();
+    hideLocalizationResults();
+    hideLocalizationError();
+    
+    try {
+        // Prepare FormData for multipart upload
+        const formData = new FormData();
+        formData.append('image', imageFile);
+        
+        // Get current product name for object search (if available)
+        const productName = currentSubcategory || 'product';
+        formData.append('object_name', productName);
+        formData.append('include_timing', 'true');
+        
+        console.log('Sending request to:', API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.SEARCH_AND_LOCALIZE);
+        console.log('Searching for object:', productName);
+        
+        // Send the request with timeout
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), API_CONFIG.TIMEOUT);
+        
+        const response = await fetch(
+            API_CONFIG.BASE_URL + API_CONFIG.ENDPOINTS.SEARCH_AND_LOCALIZE,
+            {
+                method: 'POST',
+                body: formData,
+                signal: controller.signal
+            }
+        );
+        
+        clearTimeout(timeoutId);
+        
+        // Check response status
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error (${response.status}): ${errorText}`);
+        }
+        
+        // Parse the response
+        const result = await response.json();
+        
+        console.log('Localization response received:', result);
+        
+        // Hide loading spinner
+        hideLoadingSpinner();
+        
+        // Check if localization was successful
+        if (result.success && result.localization_results) {
+            displayLocalizationResults(result);
+            logAnalytics('localization_success', {
+                timestamp: new Date().toISOString(),
+                picture_id: result.localization_results.picture_id,
+                processing_time: result.localization_results.processing_time_ms
+            });
+        } else {
+            // Localization failed but request succeeded
+            const errorMsg = result.error_message || 'Localization failed. Unable to determine your position.';
+            showLocalizationError(errorMsg);
+            logAnalytics('localization_failed', {
+                timestamp: new Date().toISOString(),
+                reason: errorMsg
+            });
+        }
+        
+    } catch (error) {
+        console.error('Localization error:', error);
+        hideLoadingSpinner();
+        
+        // Handle different error types
+        let errorMessage = 'An error occurred during localization.';
+        
+        if (error.name === 'AbortError') {
+            errorMessage = 'Request timed out. Please check your connection and try again.';
+        } else if (error.message.includes('Failed to fetch')) {
+            errorMessage = 'Cannot connect to server. Please ensure the backend is running.';
+        } else {
+            errorMessage = error.message || errorMessage;
+        }
+        
+        showLocalizationError(errorMessage);
+        
+        logAnalytics('localization_error', {
+            timestamp: new Date().toISOString(),
+            error: error.message
+        });
+    }
+}
+
+/**
+ * Display localization results in the UI
+ * @param {Object} result - The localization result from the API
+ */
+function displayLocalizationResults(result) {
+    const resultsContainer = document.getElementById('localization-results');
+    
+    if (!resultsContainer) {
+        console.error('Results container not found');
+        return;
+    }
+    
+    const localization = result.localization_results;
+    
+    // Update position data
+    document.getElementById('position-x').textContent = localization.position.x.toFixed(2) + ' m';
+    document.getElementById('position-y').textContent = localization.position.y.toFixed(2) + ' m';
+    document.getElementById('position-z').textContent = localization.position.z.toFixed(2) + ' m';
+    
+    // Update orientation data (convert radians to degrees for display)
+    const rollDeg = (localization.orientation.roll * 180 / Math.PI).toFixed(1);
+    const pitchDeg = (localization.orientation.pitch * 180 / Math.PI).toFixed(1);
+    const yawDeg = (localization.orientation.yaw * 180 / Math.PI).toFixed(1);
+    
+    document.getElementById('orientation-roll').textContent = rollDeg + '°';
+    document.getElementById('orientation-pitch').textContent = pitchDeg + '°';
+    document.getElementById('orientation-yaw').textContent = yawDeg + '°';
+    
+    // Update detected objects
+    const detectedObjectsText = localization.detected_objects || 'No objects detected';
+    document.getElementById('detected-objects').textContent = detectedObjectsText;
+    
+    // Update metadata
+    document.getElementById('picture-id').textContent = localization.picture_id;
+    document.getElementById('processing-time').textContent = localization.processing_time_ms + ' ms';
+    document.getElementById('timestamp').textContent = new Date().toLocaleString();
+    
+    // Update status badge
+    const statusBadge = document.getElementById('status-badge');
+    statusBadge.textContent = '✓ Success';
+    statusBadge.classList.remove('error');
+    
+    // Show the results container
+    resultsContainer.style.display = 'block';
+    
+    // Scroll to results
+    resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    
+    console.log('Localization results displayed successfully');
+}
+
+/**
+ * Show loading spinner during localization
+ */
+function showLoadingSpinner() {
+    const spinner = document.getElementById('loading-spinner');
+    const button = document.getElementById('localize-button');
+    
+    if (spinner) {
+        spinner.style.display = 'flex';
+    }
+    
+    if (button) {
+        button.disabled = true;
+        button.style.opacity = '0.6';
+    }
+}
+
+/**
+ * Hide loading spinner
+ */
+function hideLoadingSpinner() {
+    const spinner = document.getElementById('loading-spinner');
+    const button = document.getElementById('localize-button');
+    
+    if (spinner) {
+        spinner.style.display = 'none';
+    }
+    
+    if (button) {
+        button.disabled = false;
+        button.style.opacity = '1';
+    }
+}
+
+/**
+ * Show localization results
+ */
+function showLocalizationResults() {
+    const resultsContainer = document.getElementById('localization-results');
+    if (resultsContainer) {
+        resultsContainer.style.display = 'block';
+    }
+}
+
+/**
+ * Hide localization results
+ */
+function hideLocalizationResults() {
+    const resultsContainer = document.getElementById('localization-results');
+    if (resultsContainer) {
+        resultsContainer.style.display = 'none';
+    }
+}
+
+/**
+ * Show localization error message
+ * @param {string} message - The error message to display
+ */
+function showLocalizationError(message) {
+    const errorContainer = document.getElementById('localization-error');
+    const errorMessage = document.getElementById('error-message');
+    
+    if (errorContainer && errorMessage) {
+        errorMessage.textContent = message;
+        errorContainer.style.display = 'block';
+        
+        // Scroll to error
+        errorContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+/**
+ * Hide localization error message
+ */
+function hideLocalizationError() {
+    const errorContainer = document.getElementById('localization-error');
+    if (errorContainer) {
+        errorContainer.style.display = 'none';
+    }
+}
+
