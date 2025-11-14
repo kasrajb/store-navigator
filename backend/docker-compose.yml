@@ -1,0 +1,31 @@
+networks:
+  centralized-ai:
+    external: true
+    name: centralized-ai
+
+services:
+  rtabmap-core:
+    image: introlab3it/rtabmap:jammy    # Changed from focal to jammy
+    container_name: rtabmap-core       # Name the container for easy identification
+    command: ["tail", "-f", "/dev/null"]  # Keep the container running idle
+    networks:
+      - centralized-ai
+
+  rtabmap-api:
+    build:
+      context: .                      # Build the API container from the current directory
+      dockerfile: Dockerfile          # Specify the Dockerfile for building the image
+    container_name: rtabmap-api       # Name the container for the API
+    ports:
+      - "8040:8000"                  # Map port 8000 in the container to port 8040 on the host
+    environment:
+      - DATA_DIR=/data               # Set the data directory environment variable
+    volumes:
+      - "./data/test_images:/external_testimage"  # Mount local test images directory
+      - ".:/app"  # Mount current directory to /app for auto-reload
+    command: python3 -m uvicorn app:app --host 0.0.0.0 --port 8000 --reload --reload-dir /app  # Start the FastAPI app with live reload
+    depends_on:
+      - rtabmap-core                 # Ensure the core container starts before the API container
+    user: root                       # Run the container as the root user
+    networks:
+      - centralized-ai

@@ -1,0 +1,37 @@
+General:
+Rendering Point Cloud Density = Low
+Rendering Max Depth = 3m
+Rendering Min Depth = 0m
+Mesh Angle Tolerance = 20°
+Mesh Triangle Size = 2pix
+Mesh Decimation Factor = Disabled
+Texture Resolution = High
+Background Color = Dark Gray
+Point Size = 10
+
+Mapping:
+Update Rate = 1Hz
+Maximum Motion Speed = No Limit
+Time Limit = No Limit
+Memory Limit = 200nodes
+Depth Confidence = High
+Smoothing = Enabled
+Depth Bleeding Filter Error = Disabled
+ARKit Re-Localization Acceleration Threshold = 6g
+Proximity Detection = Enabled
+Loop Closure Threshold = 0.11
+Similarity Threshold = 0.10
+Min Inliers = 20
+Max Optimization Error = 4x
+Max Features Extracted (Vocabulary) = 800
+Max Features Extracted (Loop Closure) = 800
+Feature Type = SIFT
+Graph Optimizer = GTSAM
+
+Assembly:
+Voxel Size = 5cm
+Texture Size = 1024x1024
+Maximum Output Textures = 1
+Normal K = 12
+Max Texture Distance = 3m
+Min Texture Cluster Size = 50
