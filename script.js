@@ -232,7 +232,7 @@ const navigationData = {
 
 // Backend API configuration
 const API_CONFIG = {
-    BASE_URL: 'https://store-navigator-production.up.railway.app',  // Railway backend (HTTPS)
+    BASE_URL: 'http://localhost:8040',  // Local backend via USB tethering
     ENDPOINTS: {
         SEARCH_AND_LOCALIZE: '/search-and-localize',
         LOCALIZE: '/localize',

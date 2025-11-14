@@ -2,15 +2,17 @@
 
 **Indoor Navigation and Product Finder for Grocery Stores**
 
-## 🌐 Live Demo
+## 📱 Local Testing Setup (iPhone USB Tethering)
 
-**[https://kasrajb.github.io/store-navigator/](https://kasrajb.github.io/store-navigator/)**
+**Quick Start:** Connect iPhone to PC via USB → Enable Personal Hotspot → Open Safari to `http://localhost:8080`
+
+📖 **Full Guide:** [USB_TETHERING_GUIDE.md](USB_TETHERING_GUIDE.md)
 
 ---
 
 ## Overview
 
-Store Navigator is a smartphone-based indoor navigation system that helps users locate products in grocery stores. The application provides an intuitive interface for browsing product categories and receiving turn-by-turn directions to find items quickly and efficiently.
+Store Navigator is a smartphone-based indoor navigation system that helps users locate products in grocery stores using RTAB-Map visual localization. The application provides an intuitive interface for browsing product categories and photo-based localization for real-time position tracking.
 
 
 

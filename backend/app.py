@@ -160,23 +160,20 @@ async def shutdown_event():
         workflow_service = None
         logger.info("WorkflowService shut down successfully.")
 
-# Enable CORS with a restricted list of allowed origins for production.
-# Include GitHub Pages, the Railway deployment, and common local testing origins.
+# Enable CORS for local development and USB tethering
+# When using iPhone USB tethering, the phone accesses via localhost
 ALLOWED_ORIGINS = [
-    "https://kasrajb.github.io",
-    "https://store-navigator-production.up.railway.app",
-    # Local testing (python http.server)
-    "http://localhost:8080",
-    "http://127.0.0.1:8080",
-    # PC hotspot IP used during testing (replace if different)
-    "http://172.20.10.2:8080",
+    "http://localhost:8080",      # USB tethering (iPhone/Android)
+    "http://127.0.0.1:8080",      # Local testing on PC
+    "http://172.20.10.2:8080",    # Direct IP access (if hotspot works)
+    "*",                          # Allow all for local development
 ]
 
-logger.info(f"Configuring CORS with allowed origins: {ALLOWED_ORIGINS}")
+logger.info(f"Configuring CORS for local development with origins: {ALLOWED_ORIGINS}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
+    allow_origins=["*"],  # Permissive for local testing
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
