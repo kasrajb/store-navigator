@@ -51,13 +51,18 @@ RUN useradd -ms /bin/bash appuser
 COPY . /app
 
 # ────────────────────────────────────────────────────────────────────────────
-# IMPORTANT: Database is embedded, test image is now external via volume mount
-# 1. Database: Update data/database/ and cp command below with correct filename
-# 2. Test image: Place image in external directory (mounted at /external_testimage)
-# 3. app.py: Only update DB_FILE_PATH if changing database
+# IMPORTANT: Database handling for Railway deployment
+# Railway: Database will be uploaded separately to persistent volume at /data/database.db
+# Local: Database copied from data/database/ if available
 # ────────────────────────────────────────────────────────────────────────────
 RUN mkdir -p /data
-RUN cp /app/data/database/corridor-V3.db /data/database.db
+# Copy database if it exists (for local builds), but don't fail if missing (Railway deployment)
+RUN if [ -f /app/data/database/corridor-V3.db ]; then \
+        cp /app/data/database/corridor-V3.db /data/database.db && \
+        echo "Database copied from build context"; \
+    else \
+        echo "No database in build context - expecting external volume mount at /data/database.db"; \
+    fi
 # Test image is now external - no longer copied here
 
 # Set proper ownership
