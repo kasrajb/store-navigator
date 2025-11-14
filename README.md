@@ -1,18 +1,50 @@
 # Store Navigator
 
-**Indoor Navigation and Product Finder for Grocery Stores**
+Indoor navigation system with RTAB-Map visual localization.
 
-## 📱 Local Testing Setup (iPhone USB Tethering)
+## Quick Setup
 
-**Quick Start:** Connect iPhone to PC via USB → Enable Personal Hotspot → Open Safari to `http://localhost:8080`
+### 1. Network Setup
+Connect PC to iPhone Personal Hotspot, then add firewall rules:
+```powershell
+# Run as Administrator
+netsh advfirewall firewall add rule name="Frontend Web Server (8080)" dir=in action=allow protocol=TCP localport=8080
+netsh advfirewall firewall add rule name="Backend API (8040)" dir=in action=allow protocol=TCP localport=8040
+```
 
-📖 **Full Guide:** [USB_TETHERING_GUIDE.md](USB_TETHERING_GUIDE.md)
+Or simply run: `ADD_FIREWALL_RULES.bat` (Right-click → Run as Administrator)
 
----
+### 2. Start Backend
+```powershell
+cd backend
+docker-compose up -d
+```
 
-## Overview
+### 3. Start Frontend
+```powershell
+python -m http.server 8080 --bind 0.0.0.0
+```
 
-Store Navigator is a smartphone-based indoor navigation system that helps users locate products in grocery stores using RTAB-Map visual localization. The application provides an intuitive interface for browsing product categories and photo-based localization for real-time position tracking.
+### 4. Access on iPhone
+Find your PC IP:
+```powershell
+ipconfig
+# Look for Wi-Fi IPv4 Address (e.g., 172.20.10.2)
+```
+
+Open Safari: `http://172.20.10.2:8080`
+
+## System Requirements
+- Windows PC with Docker Desktop
+- iPhone with Personal Hotspot
+- Python 3.x
+
+## Configuration
+- Frontend: `script.js` - Update `BASE_URL` with your PC IP
+- Backend: Port 8040 (Docker)
+- Frontend: Port 8080 (Python server)
+
+For detailed setup, see `HOTSPOT_GUIDE.md`
 
 
 

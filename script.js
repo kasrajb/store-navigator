@@ -1049,10 +1049,9 @@ function displayLocalizationResults(result) {
     
     const localization = result.localization_results;
     
-    // Update position data
+    // Update position data (X and Y only)
     document.getElementById('position-x').textContent = localization.position.x.toFixed(2) + ' m';
     document.getElementById('position-y').textContent = localization.position.y.toFixed(2) + ' m';
-    document.getElementById('position-z').textContent = localization.position.z.toFixed(2) + ' m';
     
     // Update orientation data as a single formatted string
     const rollDeg = (localization.orientation.roll * 180 / Math.PI).toFixed(1);
