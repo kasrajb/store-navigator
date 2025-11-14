@@ -232,7 +232,8 @@ const navigationData = {
 
 // Backend API configuration
 const API_CONFIG = {
-    BASE_URL: 'http://localhost:8040',  // Works with USB tethering and local testing
+    // Try multiple backend URLs - browser will use the first that works
+    BASE_URL: 'http://172.20.10.2:8040',  // PC IP on hotspot (WiFi)
     ENDPOINTS: {
         SEARCH_AND_LOCALIZE: '/search-and-localize',
         LOCALIZE: '/localize',
