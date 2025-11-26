@@ -34,6 +34,7 @@ workflow_service = None
 # Define base data directories
 DATA_DIR = Path("/data")
 DB_FILE_PATH = DATA_DIR / "database.db"       # Embedded database
+METADATA_DB_FILE_PATH = Path("/app/data/database/IGA-V2.db")  # Metadata database with ObjMeta table
 EXTERNAL_TESTIMAGE_DIR = Path("/external_testimage")  # External test image directory
 
 # --- Pydantic Models for API Endpoints ---
@@ -151,14 +152,14 @@ async def startup_event():
     
     # Initialize the RTAB-Map service once at startup
     rtabmap_service = RTABMapService()
-    if not await rtabmap_service.initialize(DB_FILE_PATH):
+    if not await rtabmap_service.initialize(DB_FILE_PATH, METADATA_DB_FILE_PATH):
         logger.error("Failed to initialize RTAB-Map service at startup")
         raise RuntimeError("Failed to initialize RTAB-Map service")
     
     # Initialize the workflow service for search-and-localize functionality
     try:
         from workflow_service import WorkflowServiceManager
-        workflow_service = WorkflowServiceManager.initialize(rtabmap_service, str(DB_FILE_PATH))
+        workflow_service = WorkflowServiceManager.initialize(rtabmap_service, str(DB_FILE_PATH), str(METADATA_DB_FILE_PATH))
         logger.info("WorkflowService initialized successfully")
     except Exception as e:
         logger.error(f"Failed to initialize WorkflowService: {e}")
@@ -473,7 +474,7 @@ async def search_only(request: SearchLocalizeRequest):
         # Perform the search using the existing database path
         search_results = search_products(
             search_term=request.object_name,
-            db_path=str(DB_FILE_PATH),
+            db_path=str(METADATA_DB_FILE_PATH),
             use_sql_prefilter=True,
             show_performance=False
         )

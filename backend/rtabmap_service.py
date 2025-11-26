@@ -261,6 +261,7 @@ class RTABMapService:
     
     def __init__(self):
         self.db_path: Optional[Path] = None
+        self.metadata_db_path: Optional[Path] = None
         self.is_initialized = False
         self.lock = asyncio.Lock()
         self.image_counter = 0
@@ -327,12 +328,12 @@ class RTABMapService:
         
         Returns coordinates in meters from the global reference frame.
         """
-        if not self.db_path:
-            logger.error("Database path not set")
+        if not self.metadata_db_path:
+            logger.error("Metadata database path not set")
             return None
             
         try:
-            conn = sqlite3.connect(str(self.db_path))
+            conn = sqlite3.connect(str(self.metadata_db_path))
             cursor = conn.cursor()
             
             # Get global coordinates from metadata
@@ -407,19 +408,20 @@ class RTABMapService:
                 conn.close()
             return None
 
-    async def initialize(self, db_path_obj: Path) -> bool:
+    async def initialize(self, db_path_obj: Path, metadata_db_path_obj: Optional[Path] = None) -> bool:
         """
         Initialize the RTAB-Map service with a specific database.
         
         Args:
             db_path_obj: Path to the RTAB-Map database file
+            metadata_db_path_obj: Path to the metadata database file (containing ObjMeta table)
             
         Returns:
             True if initialization successful, False otherwise
         """
         async with self.lock:
             # If service is already initialized with the same DB, no need to reinitialize
-            if self.is_initialized and self.db_path == db_path_obj:
+            if self.is_initialized and self.db_path == db_path_obj and self.metadata_db_path == metadata_db_path_obj:
                 logger.info(f"RTAB-Map service already initialized with database: {db_path_obj}")
                 return True
 
@@ -431,6 +433,18 @@ class RTABMapService:
                 logger.error(f"Database file not found: {db_path_obj}")
                 return False
             self.db_path = db_path_obj
+            
+            # Set metadata database path - default to same as RTAB-Map DB if not specified
+            if metadata_db_path_obj:
+                if not metadata_db_path_obj.is_file():
+                    logger.warning(f"Metadata database file not found: {metadata_db_path_obj}, will use RTAB-Map database")
+                    self.metadata_db_path = db_path_obj
+                else:
+                    self.metadata_db_path = metadata_db_path_obj
+            else:
+                self.metadata_db_path = db_path_obj
+            
+            logger.info(f"Using metadata database: {self.metadata_db_path}")
 
             # RTAB-Map Console Parameters - Optimized for High-Performance Headless Localization
             # Based on GitHub Issues #1528, #358, #1507 analysis for API workloads
@@ -668,6 +682,7 @@ class RTABMapService:
         
         # Reset service state
         self.db_path = None
+        self.metadata_db_path = None
         self.is_initialized = False
         logger.info("RTAB-Map service shutdown complete.")
 
@@ -681,5 +696,6 @@ class RTABMapService:
         return {
             "initialized": self.is_initialized,
             "database_path": str(self.db_path) if self.db_path else None,
+            "metadata_database_path": str(self.metadata_db_path) if self.metadata_db_path else None,
             "image_counter": self.image_counter
         }

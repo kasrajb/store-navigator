@@ -55,16 +55,18 @@ class WorkflowService:
     consistent behavior and eliminate code duplication.
     """
     
-    def __init__(self, rtabmap_service: RTABMapService, database_path: str):
+    def __init__(self, rtabmap_service: RTABMapService, database_path: str, metadata_db_path: str):
         """
         Initialize the workflow service.
         
         Args:
             rtabmap_service: Initialized RTABMapService instance
             database_path: Path to the RTAB-Map database file
+            metadata_db_path: Path to the metadata database file (containing ObjMeta table)
         """
         self.rtabmap_service = rtabmap_service
         self.database_path = database_path
+        self.metadata_db_path = metadata_db_path
     
     async def execute_workflow(self, object_name: str, include_timing: bool = True, image_path: Optional[Path] = None) -> Dict[str, Any]:
         """
@@ -110,7 +112,7 @@ class WorkflowService:
             try:
                 search_results = search_products(
                     search_term=object_name,
-                    db_path=self.database_path,
+                    db_path=self.metadata_db_path,
                     use_sql_prefilter=True,
                     show_performance=False  # Disable print statements for API usage
                 )
@@ -470,18 +472,19 @@ class WorkflowServiceManager:
     _instance: Optional[WorkflowService] = None
     
     @classmethod
-    def initialize(cls, rtabmap_service: RTABMapService, database_path: str) -> WorkflowService:
+    def initialize(cls, rtabmap_service: RTABMapService, database_path: str, metadata_db_path: str) -> WorkflowService:
         """
         Initialize the workflow service manager with dependencies.
         
         Args:
             rtabmap_service: Initialized RTABMapService instance
             database_path: Path to the RTAB-Map database file
+            metadata_db_path: Path to the metadata database file (containing ObjMeta table)
             
         Returns:
             WorkflowService instance
         """
-        cls._instance = WorkflowService(rtabmap_service, database_path)
+        cls._instance = WorkflowService(rtabmap_service, database_path, metadata_db_path)
         logger.info("WorkflowService initialized successfully")
         return cls._instance
     
