@@ -22,12 +22,14 @@ ENV OPENCV_THREAD_COUNT=1
 # ────────────────────────────────────────────────────────────────────────────
 # 2. Install Python 3 and pip inside the Ubuntu image
 # ────────────────────────────────────────────────────────────────────────────
-# Install Python 3, pip, and setuptools
+# Install Python 3, pip, and OpenCV dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
         python3 \
         python3-pip \
-        python3-setuptools && \
+        python3-setuptools \
+        libgl1 \
+        libglib2.0-0 && \
     pip3 install --no-cache-dir --upgrade pip && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -51,18 +53,13 @@ RUN useradd -ms /bin/bash appuser
 COPY . /app
 
 # ────────────────────────────────────────────────────────────────────────────
-# IMPORTANT: Database handling for Railway deployment
-# Railway: Database will be uploaded separately to persistent volume at /data/database.db
-# Local: Database copied from data/database/ if available
+# IMPORTANT: Database is embedded, test image is now external via volume mount
+# 1. Database: Update data/database/ and cp command below with correct filename
+# 2. Test image: Place image in external directory (mounted at /external_testimage)
+# 3. app.py: Only update DB_FILE_PATH if changing database
 # ────────────────────────────────────────────────────────────────────────────
 RUN mkdir -p /data
-# Copy database if it exists (for local builds), but don't fail if missing (Railway deployment)
-RUN if [ -f /app/data/database/corridor-V3.db ]; then \
-        cp /app/data/database/corridor-V3.db /data/database.db && \
-        echo "Database copied from build context"; \
-    else \
-        echo "No database in build context - expecting external volume mount at /data/database.db"; \
-    fi
+RUN cp /app/data/database/IGA-V2.db /data/database.db
 # Test image is now external - no longer copied here
 
 # Set proper ownership

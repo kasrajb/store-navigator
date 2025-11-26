@@ -244,6 +244,7 @@ class WorkflowService:
             nearest_frame_id = None
             total_distance_to_target = None
             multiple_frames_found = len(formatted_search_results) > 1
+            route_details = None  # NEW: Route details with intermediate frames
             
             if success and formatted_localization and formatted_search_results:
                 try:
@@ -268,13 +269,52 @@ class WorkflowService:
                             "distance": nav["distance"],
                             "bearing": nav["bearing"],
                             "turn_instruction": nav["turn_instruction"],
-                            "is_at_location": nav["is_at_location"]
+                            "is_at_location": nav["is_at_location"],
+                            "clock_position": nav.get("clock_position", 12),  # NEW: Clock-face position
+                            "clock_instruction": nav.get("clock_instruction", "")  # NEW: Clock-face instruction
                         }
                         nearest_frame_id = nav["target_frame_id"]
                         total_distance_to_target = nav["distance"]
                         
                         # Update search results with distance information
                         formatted_search_results = navigation_data["all_frames_with_distances"]
+                        
+                        # NEW: Generate route details with intermediate frames
+                        try:
+                            from test_frame_extraction import generate_route_details
+                            
+                            user_frame_id = formatted_localization["picture_id"]
+                            target_frame_id = nearest_frame_id
+                            target_location = navigation_data["nearest_frame"]["location"]
+                            
+                            logger.info(f"Generating route details from Frame {user_frame_id} to Frame {target_frame_id}")
+                            
+                            route_details = generate_route_details(
+                                user_frame_id=user_frame_id,
+                                target_frame_id=target_frame_id,
+                                user_position=user_position,
+                                target_position=target_location,
+                                db_path=self.database_path,
+                                num_intermediate_frames=5,  # Extract 5 intermediate frames
+                                image_format="JPEG",
+                                image_quality=75  # Balance of quality and file size
+                            )
+                            
+                            # Log summary without Base64 images to keep terminal output clean
+                            if route_details and route_details.get('frame_extraction_success'):
+                                frames_summary = [
+                                    f"Frame {f['frame_id']} @ {f['distance_from_start']:.1f}m (image: {len(f.get('image_base64', ''))//1024}KB)"
+                                    for f in route_details.get('frames', [])
+                                ]
+                                logger.info(f"Route details: {route_details['total_frames']} frames, {route_details['route_distance']:.2f}m distance")
+                                logger.info(f"Frames extracted: {', '.join(frames_summary)}")
+                            else:
+                                logger.info(f"Route details generated with status: {route_details.get('frame_extraction_success', False)}")
+                            
+                        except Exception as e:
+                            logger.warning(f"Failed to generate route details: {e}")
+                            # Don't fail the entire workflow if route generation fails
+                            route_details = None
                         
                 except Exception as e:
                     logger.warning(f"Failed to calculate navigation guidance: {e}")
@@ -291,12 +331,13 @@ class WorkflowService:
                     "total_duration": round(total_elapsed, 1)
                 }
             
-            # Step 7: Return structured results with navigation guidance
+            # Step 7: Return structured results with navigation guidance and route details
             return {
                 "success": success,
                 "search_results": formatted_search_results,
                 "localization_results": formatted_localization,
                 "navigation_guidance": navigation_guidance,
+                "route_details": route_details,  # NEW: Intermediate frames with images
                 "nearest_frame_id": nearest_frame_id,
                 "total_distance_to_target": total_distance_to_target,
                 "multiple_frames_found": multiple_frames_found,

@@ -218,12 +218,7 @@ const navigationData = {
         { number: 1, label: "Aisle 1" },
         { number: 0, label: "Entrance" }
     ],
-    directions: [
-        { step: 1, action: "Walk straight ahead", distance: "30m", icon: "🚶" },
-        { step: 2, action: "Turn right at Aisle 5", distance: "", icon: "↪️" },
-        { step: 3, action: "Continue straight", distance: "15m", icon: "🚶" },
-        { step: 4, action: "Your product is on the right side, Section C", distance: "", icon: "🎯" }
-    ]
+    directions: []  // Empty - directions will be generated dynamically from backend
 };
 
 // ============================================
@@ -956,8 +951,8 @@ async function performLocalization(imageFile) {
         const formData = new FormData();
         formData.append('image', imageFile);
         
-        // Get current product name for object search (if available)
-        const productName = currentSubcategory || 'product';
+        // Hardcode "kettle" for now - will be dynamic later based on user selection
+        const productName = 'kettle';
         formData.append('object_name', productName);
         formData.append('include_timing', 'true');
         
@@ -1071,13 +1066,94 @@ function displayLocalizationResults(result) {
     statusBadge.textContent = '✓ Success';
     statusBadge.classList.remove('error');
     
-    // Show the results container
+    // Display navigation guidance if available
+    if (result.navigation_guidance) {
+        displayNavigationGuidance(result.navigation_guidance);
+    }
+    
+    // Show the results container and additional info
     resultsContainer.style.display = 'block';
+    const additionalInfo = document.getElementById('additional-info');
+    if (additionalInfo) {
+        additionalInfo.style.display = 'block';
+    }
     
     // Scroll to results
     resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     
     console.log('Localization results displayed successfully');
+}
+
+/**
+ * Display navigation guidance directions
+ */
+function displayNavigationGuidance(guidance) {
+    const directionsList = document.getElementById('directions-list');
+    
+    if (!directionsList) {
+        console.error('Directions list not found');
+        return;
+    }
+    
+    // Clear any existing directions
+    directionsList.innerHTML = '';
+    
+    // Check if user is already at the location
+    if (guidance.is_at_location) {
+        directionsList.innerHTML = `
+            <div class="direction-step">
+                <div class="step-icon">🎯</div>
+                <div class="step-content">
+                    <div class="step-text">You have arrived at your destination!</div>
+                    <div class="step-distance">Target: ${guidance.target_object}</div>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    // Create navigation steps
+    const steps = [];
+    
+    // Step 1: Turn instruction
+    if (guidance.turn_instruction && guidance.turn_instruction !== "You're already facing the target") {
+        steps.push({
+            icon: '🔄',
+            text: guidance.turn_instruction,
+            distance: null
+        });
+    }
+    
+    // Step 2: Main direction (backend already provides complete sentence)
+    steps.push({
+        icon: '🚶',
+        text: guidance.direction,
+        distance: `${guidance.distance.toFixed(1)}m`
+    });
+    
+    // Step 3: Arrival
+    steps.push({
+        icon: '🎯',
+        text: 'You will arrive at your destination',
+        distance: null
+    });
+    
+    // Render all steps
+    steps.forEach((step, index) => {
+        const stepDiv = document.createElement('div');
+        stepDiv.className = 'direction-step';
+        stepDiv.innerHTML = `
+            <div class="step-icon">${step.icon}</div>
+            <div class="step-content">
+                <div class="step-number">Step ${index + 1}</div>
+                <div class="step-text">${step.text}</div>
+                ${step.distance ? `<div class="step-distance">${step.distance}</div>` : ''}
+            </div>
+        `;
+        directionsList.appendChild(stepDiv);
+    });
+    
+    console.log('Navigation guidance displayed:', guidance);
 }
 
 /**

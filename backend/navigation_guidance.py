@@ -64,6 +64,16 @@ def calculate_direction(user_pos: Dict[str, float],
     """
     Calculate directional guidance from user position to target.
     
+    COORDINATE SYSTEM NOTES - IGA-V2.db vs corridor-V3.db:
+    
+    Both databases REQUIRE Y-axis inversion for proper navigation:
+    - RTAB-Map stores Y-axis in a left-handed coordinate system
+    - Navigation requires right-handed coordinates for intuitive bearing calculation
+    - Solution: Invert both dy and user_yaw (negate them) before calculating bearings
+    
+    The Y-axis inversion is APPLIED to both databases because the underlying
+    RTAB-Map coordinate system is consistent between databases.
+    
     Args:
         user_pos: Dict with 'x', 'y' keys (user's position)
         target_pos: Dict with 'x', 'y' keys (target position)
@@ -84,7 +94,7 @@ def calculate_direction(user_pos: Dict[str, float],
     dx = target_pos['x'] - user_pos['x']
     dy = target_pos['y'] - user_pos['y']
     
-    # FIX: Invert Y-axis to correct RTAB-Map coordinate system
+    # Y-AXIS INVERSION ENABLED FOR IGA-V2.db COORDINATE SYSTEM
     # RTAB-Map: Moving forward/east → Y becomes MORE NEGATIVE
     # Navigation expects: Moving forward → Positive Y
     # Solution: Negate dy AND yaw before bearing calculation
@@ -93,21 +103,21 @@ def calculate_direction(user_pos: Dict[str, float],
     
     logger.info(f"User Position: x={user_pos['x']:.2f}, y={user_pos['y']:.2f}")
     logger.info(f"Target Position: x={target_pos['x']:.2f}, y={target_pos['y']:.2f}")
-    logger.info(f"Vector Components: dx={dx:.2f}, dy={dy:.2f} (Y-axis inverted)")
-    logger.info(f"User Yaw (orientation): {user_yaw:.4f} radians = {math.degrees(user_yaw):.1f}° (original)")
-    logger.info(f"Corrected Yaw: {corrected_yaw:.4f} radians = {math.degrees(corrected_yaw):.1f}° (inverted)")
+    logger.info(f"Vector Components: dx={dx:.2f}, dy={dy:.2f} (Y-axis inversion: ENABLED for IGA-V2.db)")
+    logger.info(f"User Yaw (orientation): {user_yaw:.4f} radians = {math.degrees(user_yaw):.1f}°")
+    logger.info(f"Corrected Yaw: {corrected_yaw:.4f} radians = {math.degrees(corrected_yaw):.1f}° (Y-axis inverted)")
     
     # Calculate absolute bearing (angle from positive x-axis)
     target_bearing_rad = math.atan2(dy, dx)
     target_bearing_deg = math.degrees(target_bearing_rad)
     
-    logger.info(f"Absolute Target Bearing: {target_bearing_rad:.4f} radians = {target_bearing_deg:.1f}°")
+    logger.info(f"Absolute Target Bearing: {target_bearing_rad:.4f} radians = {target_bearing_deg:.1f}° (Y-axis inverted)")
     
     # Calculate relative bearing (relative to user's current orientation)
-    # Use corrected_yaw instead of user_yaw
+    # Use corrected_yaw (which IS inverted for IGA-V2.db)
     relative_bearing_rad = target_bearing_rad - corrected_yaw
     
-    logger.info(f"Relative Bearing (before normalization): {relative_bearing_rad:.4f} radians = {math.degrees(relative_bearing_rad):.1f}°")
+    logger.info(f"Relative Bearing (before normalization): {relative_bearing_rad:.4f} radians = {math.degrees(relative_bearing_rad):.1f}° (with Y-axis inversion)")
     
     # Normalize to [-pi, pi]
     while relative_bearing_rad > math.pi:
@@ -127,7 +137,7 @@ def calculate_direction(user_pos: Dict[str, float],
     
     # Generate human-readable direction
     direction_text = generate_direction_text(relative_bearing_deg, distance)
-    turn_instruction = generate_turn_instruction(relative_bearing_deg)
+    turn_instruction = generate_turn_instruction(relative_bearing_deg, distance)
     
     logger.info(f"Generated Direction: {direction_text}")
     logger.info(f"Turn Instruction: {turn_instruction}")
@@ -146,6 +156,10 @@ def generate_direction_text(bearing_deg: float, distance: float) -> str:
     Generate natural, accessible direction text for blind/visually impaired users.
     Uses intuitive phrasing that's easy to speak and understand.
     """
+    
+    # Special case: Already at the location
+    if distance < 0.3:
+        return "You are at the target location"
     
     # Determine direction (8-point compass)
     if -22.5 <= bearing_deg <= 22.5:
@@ -166,11 +180,7 @@ def generate_direction_text(bearing_deg: float, distance: float) -> str:
         direction = "ahead and to your left"
     
     # Generate natural distance descriptions
-    if distance < 0.3:
-        # Very close - emphasize immediacy
-        return f"Right {direction}"
-    
-    elif distance < 1.0:
+    if distance < 1.0:
         # Close - use simple integer
         distance_int = round(distance)
         if distance_int == 0:
@@ -193,11 +203,18 @@ def generate_direction_text(bearing_deg: float, distance: float) -> str:
         return f"{direction.capitalize()}, approximately {distance_rounded} meters away"
 
 
-def generate_turn_instruction(bearing_deg: float) -> str:
+def generate_turn_instruction(bearing_deg: float, distance: float = None) -> str:
     """
     Generate natural turn instruction for blind/visually impaired users.
     Avoids precise degree measurements, uses intuitive descriptions.
+    
+    DEPRECATED: Use generate_clock_face_direction() for more precise guidance.
+    This function is kept for backward compatibility.
     """
+    # Special case: Already at location
+    if distance is not None and distance < 0.3:
+        return "You have arrived at your destination"
+    
     abs_bearing = abs(bearing_deg)
     
     # Very small angle - essentially straight
@@ -228,6 +245,179 @@ def generate_turn_instruction(bearing_deg: float) -> str:
     # U-turn or nearly behind (135-180 degrees)
     else:
         return "Turn around"
+
+
+def format_distance(distance: float) -> str:
+    """
+    Convert distance in meters to natural, speech-friendly description.
+    
+    Args:
+        distance: Distance in meters
+        
+    Returns:
+        Human-readable distance description optimized for text-to-speech
+        
+    Examples:
+        0.3 → "less than half a meter"
+        0.8 → "about 0.8 meters"
+        1.5 → "about 1.5 meters"
+        3.2 → "approximately 3 meters"
+        7.8 → "around 8 meters"
+        15.3 → "approximately 15 meters"
+    """
+    if distance < 0.5:
+        return "less than half a meter"
+    elif distance < 1.0:
+        return f"about {round(distance, 1)} meters"
+    elif distance < 2.0:
+        # Round to nearest 0.5m
+        rounded = round(distance * 2) / 2
+        return f"about {rounded} meters"
+    elif distance < 5.0:
+        return f"approximately {round(distance)} meters"
+    elif distance < 10.0:
+        return f"around {round(distance)} meters"
+    else:
+        # Round to nearest 5 meters for long distances
+        rounded = round(distance / 5) * 5
+        return f"approximately {rounded} meters"
+
+
+def generate_clock_instruction(clock_position: int, bearing: float, distance: float) -> str:
+    """
+    Generate natural language instruction using clock-face directions.
+    
+    Args:
+        clock_position: Clock hour (1-12)
+        bearing: Bearing angle in degrees (for debugging)
+        distance: Distance to target in meters
+        
+    Returns:
+        Natural language instruction optimized for text-to-speech
+        
+    Examples:
+        (12, 0, 5.0) → "Face straight ahead at 12 o'clock. Then walk approximately 5 meters."
+        (3, 90, 3.2) → "Turn to face 3 o'clock, directly to your right. Then walk approximately 3 meters."
+        (1, 30, 18.5) → "Turn slightly right to face 1 o'clock. Then walk approximately 20 meters."
+    """
+    # Special case: Already at destination
+    if distance < 0.3:
+        return "You have arrived at your destination"
+    
+    # Generate orientation instruction based on clock position
+    if clock_position == 12:
+        orientation = "Face straight ahead at 12 o'clock"
+    elif clock_position == 3:
+        orientation = "Turn to face 3 o'clock, directly to your right"
+    elif clock_position == 9:
+        orientation = "Turn to face 9 o'clock, directly to your left"
+    elif clock_position == 6:
+        orientation = "Turn around to face 6 o'clock, behind you"
+    elif clock_position == 1:
+        orientation = "Turn slightly right to face 1 o'clock"
+    elif clock_position == 2:
+        orientation = "Turn right to face 2 o'clock"
+    elif clock_position == 4:
+        orientation = "Turn right to face 4 o'clock"
+    elif clock_position == 5:
+        orientation = "Turn around to your right, facing 5 o'clock"
+    elif clock_position == 11:
+        orientation = "Turn slightly left to face 11 o'clock"
+    elif clock_position == 10:
+        orientation = "Turn left to face 10 o'clock"
+    elif clock_position == 8:
+        orientation = "Turn left to face 8 o'clock"
+    elif clock_position == 7:
+        orientation = "Turn around to your left, facing 7 o'clock"
+    else:
+        # Fallback (should not happen with valid clock positions)
+        orientation = f"Turn to face {clock_position} o'clock"
+    
+    # Add distance instruction
+    distance_text = format_distance(distance)
+    
+    return f"{orientation}. Then walk {distance_text}."
+
+
+def generate_clock_face_direction(user_pos: Dict[str, float], 
+                                  target_pos: Dict[str, float], 
+                                  user_yaw: float) -> Dict[str, Any]:
+    """
+    Generate clock-face navigation guidance from user position to target.
+    
+    Uses clock positions (1-12) as reference for orientation:
+    - 12 o'clock = straight ahead
+    - 3 o'clock = directly to the right
+    - 6 o'clock = directly behind
+    - 9 o'clock = directly to the left
+    
+    Args:
+        user_pos: Dict with 'x', 'y' keys (user's position in meters)
+        target_pos: Dict with 'x', 'y' keys (target position in meters)
+        user_yaw: User's orientation in radians (from localization)
+        
+    Returns:
+        Dict with:
+        - clock_position: Integer 1-12 representing clock hour
+        - bearing_degrees: Float relative bearing in degrees (-180 to +180)
+        - distance_meters: Float distance in meters
+        - instruction: String natural language instruction
+        
+    Examples:
+        User at (4.56, -18.39), target at (6.60, -37.06), yaw=0.0
+        → {"clock_position": 1, "bearing_degrees": 25.3, 
+           "distance_meters": 18.78, 
+           "instruction": "Turn slightly right to face 1 o'clock. Then walk around 19 meters."}
+    """
+    # Use existing calculate_direction function (handles Y-axis inversion)
+    direction_data = calculate_direction(user_pos, target_pos, user_yaw)
+    
+    bearing = direction_data['bearing']  # Degrees, range [-180, +180]
+    distance = direction_data['distance']  # Meters
+    
+    logger.info(f"Clock-face calculation: bearing={bearing:.1f}°, distance={distance:.2f}m")
+    
+    # Convert bearing to clock position
+    # Each clock hour = 30 degrees (360° / 12 hours)
+    # 0° = 12 o'clock (straight ahead)
+    # Positive angles = clockwise (right side)
+    # Negative angles = counter-clockwise (left side)
+    
+    # Round to nearest 30° to get clock hour offset
+    clock_hour = round(bearing / 30.0)
+    
+    logger.info(f"Initial clock_hour calculation: {clock_hour}")
+    
+    # Handle edge cases near ±180° (should map to 6 o'clock)
+    if clock_hour > 6:
+        clock_hour = clock_hour - 12
+    elif clock_hour < -6:
+        clock_hour = clock_hour + 12
+    
+    logger.info(f"After edge case handling: clock_hour={clock_hour}")
+    
+    # Convert clock_hour offset to actual clock position (1-12)
+    if clock_hour == 0:
+        clock_position = 12
+    elif clock_hour > 0:
+        clock_position = clock_hour
+    else:
+        # Negative hours: convert to clock positions 7-11
+        clock_position = 12 + clock_hour
+    
+    logger.info(f"Final clock_position: {clock_position}")
+    
+    # Generate natural language instruction
+    instruction = generate_clock_instruction(clock_position, bearing, distance)
+    
+    logger.info(f"Generated instruction: {instruction}")
+    
+    return {
+        'clock_position': clock_position,
+        'bearing_degrees': round(bearing, 1),
+        'distance_meters': round(distance, 2),
+        'instruction': instruction
+    }
 
 
 def add_navigation_guidance(search_results: List[Dict], 
@@ -272,28 +462,50 @@ def add_navigation_guidance(search_results: List[Dict],
     if len(search_results) > 1:
         multiple_frames_message = "⚠️  The object exists in several frames. I will guide you to the nearest frame."
     
-    # Calculate navigation guidance to nearest frame
-    navigation_guidance = calculate_direction(
+    # Calculate navigation guidance to nearest frame using CLOCK-FACE system
+    clock_guidance = generate_clock_face_direction(
         user_pos=user_position,
         target_pos=nearest_frame['location'],
         user_yaw=user_yaw
     )
     
-    # Add object name and frame info
-    navigation_guidance['target_object'] = object_name
-    navigation_guidance['target_frame_id'] = nearest_frame['frame_id']
-    navigation_guidance['is_at_location'] = navigation_guidance['distance'] < 0.3
+    # Also calculate traditional navigation for backward compatibility
+    traditional_guidance = calculate_direction(
+        user_pos=user_position,
+        target_pos=nearest_frame['location'],
+        user_yaw=user_yaw
+    )
+    
+    # Merge both guidance systems
+    navigation_guidance = {
+        # New clock-face guidance (primary)
+        'clock_position': clock_guidance['clock_position'],
+        'clock_instruction': clock_guidance['instruction'],
+        
+        # Traditional guidance (backward compatibility)
+        'direction': traditional_guidance['direction'],
+        'turn_instruction': traditional_guidance['turn_instruction'],
+        
+        # Common fields
+        'target_object': object_name,
+        'target_frame_id': nearest_frame['frame_id'],
+        'distance': clock_guidance['distance_meters'],
+        'bearing': clock_guidance['bearing_degrees'],
+        'is_at_location': clock_guidance['distance_meters'] < 0.3
+    }
     
     logger.info("="*80)
-    logger.info("FINAL NAVIGATION GUIDANCE")
+    logger.info("FINAL NAVIGATION GUIDANCE (CLOCK-FACE SYSTEM)")
     logger.info("="*80)
     logger.info(f"Target Object: {navigation_guidance['target_object']}")
     logger.info(f"Target Frame ID: {navigation_guidance['target_frame_id']}")
-    logger.info(f"Direction: {navigation_guidance['direction']}")
-    logger.info(f"Turn Instruction: {navigation_guidance['turn_instruction']}")
+    logger.info(f"Clock Position: {navigation_guidance['clock_position']} o'clock")
+    logger.info(f"Clock Instruction: {navigation_guidance['clock_instruction']}")
     logger.info(f"Distance: {navigation_guidance['distance']} meters")
     logger.info(f"Bearing: {navigation_guidance['bearing']}°")
     logger.info(f"At Location: {navigation_guidance['is_at_location']}")
+    logger.info(f"Legacy Direction: {navigation_guidance['direction']}")
+    logger.info(f"Legacy Turn: {navigation_guidance['turn_instruction']}")
     logger.info("="*80)
     
     return {

@@ -20,10 +20,12 @@ This containerized API system provides spatial intelligence capabilities for app
   - Vision-based position tracking using RTAB-Map SLAM
   - Sub-second processing with optimized parameters
 
-- **🧭 Navigation Guidance**
+- **🧭 Navigation Guidance (Clock-Face System)**
+  - Precise, executable instructions for blind/visually impaired users
   - Automatic distance and bearing calculations
-  - Human-readable directional instructions
+  - Human-readable directional instructions optimized for TTS
   - Proximity detection and multi-target handling
+  - Backward compatible with legacy direction text
 
 - **🎯 Integrated Workflow**
   - Unified search-and-localize endpoint
@@ -90,6 +92,8 @@ This containerized API system provides spatial intelligence capabilities for app
     "orientation": {"roll": -2.08, "pitch": -1.57, "yaw": -1.50}
   },
   "navigation_guidance": {
+    "clock_position": 1,
+    "clock_instruction": "Turn slightly right to face 1 o'clock. Then walk less than half a meter.",
     "direction": "ahead and to your right, approximately very close away",
     "distance": 0.02,
     "bearing": 22.7,

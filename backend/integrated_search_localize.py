@@ -53,7 +53,7 @@ logger = logging.getLogger("integrated_search_localize")
 
 # Configuration
 API_BASE_URL = "http://localhost:8040"
-DATABASE_PATH = r"C:\cybersight\rtabmap_api\data\database\labv2-2.db"
+DATABASE_PATH = r"C:\Users\kasra\Desktop\Kasra\Telegram\Fall 2025\ECSE 542 Final Report\store-navigator\backend\data\database\IGA-V2.db"
 REQUEST_TIMEOUT = 30  # seconds
 
 

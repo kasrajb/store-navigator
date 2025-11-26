@@ -835,7 +835,7 @@ def main():
     import sys
     
     # Store's spatial mapping database path
-    db_path = r"C:\cybersight\rtabmap_api\data\database\labv2-2.db"
+    db_path = r"C:\Users\kasra\Desktop\Kasra\Telegram\Fall 2025\ECSE 542 Final Report\store-navigator\backend\data\database\IGA-V2.db"
     
     # Check for command line arguments
     use_sql_prefilter = True

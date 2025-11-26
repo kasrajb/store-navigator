@@ -61,11 +61,34 @@ class NavigationGuidance(BaseModel):
     """Model representing navigation guidance information."""
     target_object: str = Field(..., description="Name of the target object", example="orange door")
     target_frame_id: int = Field(..., description="Frame ID of the nearest target", example=45)
-    direction: str = Field(..., description="Human-readable direction text", example="ahead and to your right, approximately 2.3 meters away")
+    
+    # Clock-face guidance (NEW - primary system for blind users)
+    clock_position: int = Field(..., description="Clock position (1-12) for orientation", example=2)
+    clock_instruction: str = Field(..., description="Clock-face navigation instruction", example="Turn right to face 2 o'clock. Then walk approximately 2 meters.")
+    
+    # Legacy guidance (backward compatibility)
+    direction: str = Field(..., description="Human-readable direction text (legacy)", example="ahead and to your right, approximately 2.3 meters away")
+    turn_instruction: str = Field(..., description="Turn instruction for navigation (legacy)", example="Turn 35° to your right")
+    
+    # Common fields
     distance: float = Field(..., description="Distance to target in meters", example=2.3)
     bearing: float = Field(..., description="Relative bearing in degrees", example=35.2)
-    turn_instruction: str = Field(..., description="Turn instruction for navigation", example="Turn 35° to your right")
     is_at_location: bool = Field(..., description="Whether user is already at the target location")
+
+class RouteFrame(BaseModel):
+    """Model representing a single frame along the navigation route."""
+    frame_id: int = Field(..., description="Frame ID from database", example=150)
+    position: Dict[str, float] = Field(..., description="2D position coordinates in meters", example={"x": 4.5, "y": -12.3})
+    distance_from_start: float = Field(..., description="Distance from user's starting position in meters", example=8.5)
+
+class RouteDetails(BaseModel):
+    """Model representing complete route information with intermediate frames."""
+    total_frames: int = Field(..., description="Total number of frames in route", example=6)
+    route_distance: float = Field(..., description="Total distance from start to end in meters", example=18.5)
+    frame_extraction_success: bool = Field(..., description="Whether all frame images were extracted successfully")
+    frames: List[RouteFrame] = Field(..., description="Ordered list of frames from user location to target")
+    images: Optional[List[Optional[str]]] = Field(default=[], description="Simple array of Base64-encoded images (without metadata) for vision pipeline processing")
+    error_message: Optional[str] = Field(None, description="Error message if frame extraction failed")
 
 class SearchLocalizeResponse(BaseModel):
     """Response model for the search-and-localize endpoint."""
@@ -73,6 +96,7 @@ class SearchLocalizeResponse(BaseModel):
     search_results: List[SearchResult] = Field(..., description="List of objects found matching the search term")
     localization_results: Optional[LocalizationResult] = Field(None, description="Localization data if successful")
     navigation_guidance: Optional[NavigationGuidance] = Field(None, description="Directional guidance to nearest object")
+    route_details: Optional[RouteDetails] = Field(None, description="Intermediate frames with images along the route for landmark-based navigation")
     nearest_frame_id: Optional[int] = Field(None, description="ID of the nearest frame selected for navigation")
     total_distance_to_target: Optional[float] = Field(None, description="Distance to the nearest target in meters")
     multiple_frames_found: bool = Field(default=False, description="Whether multiple frames contain the object")
@@ -122,8 +146,8 @@ async def startup_event():
         test_image_path = get_test_image_path()
         logger.info(f"Using external test image: {test_image_path}")
     except FileNotFoundError as e:
-        logger.error(str(e))
-        raise RuntimeError(str(e))
+        logger.warning(f"External test image directory not available: {e}. Localization endpoints will not work without mounted test images.")
+        test_image_path = None
     
     # Initialize the RTAB-Map service once at startup
     rtabmap_service = RTABMapService()
@@ -160,20 +184,10 @@ async def shutdown_event():
         workflow_service = None
         logger.info("WorkflowService shut down successfully.")
 
-# Enable CORS for local development and USB tethering
-# When using iPhone USB tethering, the phone accesses via localhost
-ALLOWED_ORIGINS = [
-    "http://localhost:8080",      # USB tethering (iPhone/Android)
-    "http://127.0.0.1:8080",      # Local testing on PC
-    "http://172.20.10.2:8080",    # Direct IP access (if hotspot works)
-    "*",                          # Allow all for local development
-]
-
-logger.info(f"Configuring CORS for local development with origins: {ALLOWED_ORIGINS}")
-
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permissive for local testing
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -213,20 +227,6 @@ async def service_status():
         "external_test_image": test_image_status,
         "external_directory": str(EXTERNAL_TESTIMAGE_DIR),
         "available_endpoints": ["/health", "/status", "/localize", "/search-and-localize"],
-        "timestamp": time.time()
-    }
-
-
-@app.get("/")
-async def root():
-    """
-    Root endpoint with a short human-readable status. Useful for quick checks in a browser.
-    """
-    return {
-        "service": "rtabmap-api",
-        "status": "running",
-        "version": "1.1",
-        "endpoints": ["/health", "/status", "/search-and-localize"],
         "timestamp": time.time()
     }
 
