@@ -1,7 +1,7 @@
 """
-Vision Pipeline Integration Example
+Webapp Integration Example
 
-This script demonstrates how to integrate the vision pipeline with the RTAB-Map API
+This script demonstrates how to integrate the webapp with the RTAB-Map API
 to send images and object queries, then receive navigation guidance.
 
 Usage:
@@ -102,7 +102,7 @@ def display_results(result: dict):
         if loc['detected_objects']:
             print(f"Detected Objects: {loc['detected_objects']}")
     
-    # Display navigation guidance - THIS IS THE KEY OUTPUT FOR THE VISION PIPELINE
+    # Display navigation guidance - THIS IS THE KEY OUTPUT FOR THE WEBAPP
     if result['navigation_guidance']:
         nav = result['navigation_guidance']
         print(f"\n[NAVIGATION GUIDANCE]")
@@ -114,8 +114,8 @@ def display_results(result: dict):
         print(f"Turn Instruction: {nav['turn_instruction']}")
         print(f"At Location: {nav['is_at_location']}")
         
-        # This is what your vision pipeline should use:
-        print(f"\n>>> VISION PIPELINE OUTPUTS <<<")
+        # This is what your webapp should use:
+        print(f"\n>>> WEBAPP OUTPUTS <<<")
         print(f"direction = \"{nav['direction']}\"")
         print(f"distance = {nav['distance']:.2f}  # meters")
         print(f"bearing = {nav['bearing']:.1f}  # degrees")

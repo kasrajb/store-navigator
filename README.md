@@ -14,13 +14,13 @@ netsh advfirewall firewall add rule name="Backend API (8040)" dir=in action=allo
 
 Or simply run: `ADD_FIREWALL_RULES.bat` (Right-click → Run as Administrator)
 
-### 2. Start Backend
+### 2. Start Backend Server
 ```powershell
 cd backend
 docker-compose up -d
 ```
 
-### 3. Start Frontend
+### 3. Start Frontend Server
 ```powershell
 python -m http.server 8080 --bind 0.0.0.0
 ```
@@ -33,6 +33,23 @@ ipconfig
 ```
 
 Open Safari: `http://172.20.10.2:8080`
+
+## Manual Server Commands
+
+If you prefer to run servers manually instead of using Docker:
+
+### Backend Server (RTAB-Map API)
+```powershell
+cd backend
+docker-compose up -d
+```
+This starts the RTAB-Map API service on port 8040.
+
+### Frontend Server
+```powershell
+python -m http.server 8080 --bind 0.0.0.0
+```
+This starts a simple HTTP server for the frontend on port 8080.
 
 ## System Requirements
 - Windows PC with Docker Desktop

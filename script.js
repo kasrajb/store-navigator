@@ -265,7 +265,6 @@ const backButton = document.getElementById('back-button');
 const navigationSection = document.getElementById('navigation-section');
 const navBackButton = document.getElementById('nav-back-button');
 const navProductName = document.getElementById('nav-product-name');
-const storeMap = document.getElementById('store-map');
 const directionsList = document.getElementById('directions-list');
 
 // ============================================
@@ -611,9 +610,6 @@ function generateNavigationScreen(categoryName, subcategoryName) {
     // Update header
     navProductName.textContent = `Navigating to: ${subcategoryName}`;
     
-    // Generate store map
-    generateStoreMap();
-    
     // Generate directions
     generateDirections(subcategoryName);
     
@@ -622,26 +618,6 @@ function generateNavigationScreen(categoryName, subcategoryName) {
     setTimeout(() => {
         initializeLocalizationHandlers();
     }, 100);
-}
-
-/**
- * Generate store map visualization
- */
-function generateStoreMap() {
-    storeMap.innerHTML = '';
-    
-    // Create placeholder for 3D map
-    const mapPlaceholder = document.createElement('div');
-    mapPlaceholder.className = 'map-placeholder';
-    
-    const mapImage = document.createElement('img');
-    mapImage.className = 'map-image';
-    mapImage.src = 'image.png';
-    mapImage.alt = 'Store Layout Map';
-    
-    mapPlaceholder.appendChild(mapImage);
-    
-    storeMap.appendChild(mapPlaceholder);
 }
 
 /**
@@ -951,8 +927,8 @@ async function performLocalization(imageFile) {
         const formData = new FormData();
         formData.append('image', imageFile);
         
-        // Hardcode "kettle" for now - will be dynamic later based on user selection
-        const productName = 'kettle';
+        // Hardcode "paper towel" for now - will be dynamic later based on user selection
+        const productName = 'paper towel';
         formData.append('object_name', productName);
         formData.append('include_timing', 'true');
         
@@ -1044,9 +1020,14 @@ function displayLocalizationResults(result) {
     
     const localization = result.localization_results;
     
-    // Update position data (X and Y only)
-    document.getElementById('position-x').textContent = localization.position.x.toFixed(2) + ' m';
-    document.getElementById('position-y').textContent = localization.position.y.toFixed(2) + ' m';
+    // Update position data - use global coordinates if available, otherwise local
+    if (localization.global_position) {
+        document.getElementById('position-x').textContent = localization.global_position.x.toFixed(2) + ' m';
+        document.getElementById('position-y').textContent = localization.global_position.y.toFixed(2) + ' m';
+    } else {
+        document.getElementById('position-x').textContent = localization.position.x.toFixed(2) + ' m';
+        document.getElementById('position-y').textContent = localization.position.y.toFixed(2) + ' m';
+    }
     
     // Update orientation data as a single formatted string
     const rollDeg = (localization.orientation.roll * 180 / Math.PI).toFixed(1);
@@ -1085,25 +1066,26 @@ function displayLocalizationResults(result) {
 }
 
 /**
- * Display navigation guidance directions
+ * Display navigation guidance directions with detailed step-by-step instructions
  */
 function displayNavigationGuidance(guidance) {
     const directionsList = document.getElementById('directions-list');
-    
+
     if (!directionsList) {
         console.error('Directions list not found');
         return;
     }
-    
+
     // Clear any existing directions
     directionsList.innerHTML = '';
-    
+
     // Check if user is already at the location
     if (guidance.is_at_location) {
         directionsList.innerHTML = `
             <div class="direction-step">
                 <div class="step-icon">🎯</div>
                 <div class="step-content">
+                    <div class="step-number">✓</div>
                     <div class="step-text">You have arrived at your destination!</div>
                     <div class="step-distance">Target: ${guidance.target_object}</div>
                 </div>
@@ -1111,49 +1093,142 @@ function displayNavigationGuidance(guidance) {
         `;
         return;
     }
-    
-    // Create navigation steps
-    const steps = [];
-    
-    // Step 1: Turn instruction
-    if (guidance.turn_instruction && guidance.turn_instruction !== "You're already facing the target") {
-        steps.push({
-            icon: '🔄',
-            text: guidance.turn_instruction,
-            distance: null
-        });
-    }
-    
-    // Step 2: Main direction (backend already provides complete sentence)
-    steps.push({
-        icon: '🚶',
-        text: guidance.direction,
-        distance: `${guidance.distance.toFixed(1)}m`
-    });
-    
-    // Step 3: Arrival
-    steps.push({
-        icon: '🎯',
-        text: 'You will arrive at your destination',
-        distance: null
-    });
-    
+
+    // Parse clock instruction for detailed steps
+    const steps = parseClockInstruction(guidance);
+
     // Render all steps
     steps.forEach((step, index) => {
         const stepDiv = document.createElement('div');
         stepDiv.className = 'direction-step';
+        if (index === steps.length - 1) {
+            stepDiv.classList.add('final');
+        }
+
         stepDiv.innerHTML = `
+            <div class="step-number">${index + 1}</div>
             <div class="step-icon">${step.icon}</div>
             <div class="step-content">
-                <div class="step-number">Step ${index + 1}</div>
                 <div class="step-text">${step.text}</div>
                 ${step.distance ? `<div class="step-distance">${step.distance}</div>` : ''}
             </div>
         `;
         directionsList.appendChild(stepDiv);
     });
-    
-    console.log('Navigation guidance displayed:', guidance);
+
+    console.log('Navigation guidance displayed with', steps.length, 'steps');
+}
+
+/**
+ * Parse clock instruction into detailed step-by-step directions
+ */
+function parseClockInstruction(guidance) {
+    const steps = [];
+    const clockPos = guidance.clock_position;
+    const bearing = guidance.bearing;
+    const distance = guidance.distance;
+
+    // Determine turn direction and amount
+    let turnDirection = '';
+    let turnAmount = '';
+    let isClockwise = bearing > 0;
+
+    // Calculate turn amount in degrees
+    const turnDegrees = Math.abs(bearing);
+
+    if (turnDegrees < 15) {
+        turnAmount = 'slight';
+    } else if (turnDegrees < 45) {
+        turnAmount = 'quarter';
+    } else if (turnDegrees < 90) {
+        turnAmount = 'half';
+    } else if (turnDegrees < 135) {
+        turnAmount = 'three-quarter';
+    } else {
+        turnAmount = 'full';
+    }
+
+    // Determine turn direction
+    if (bearing > 0) {
+        turnDirection = 'clockwise (to your right)';
+    } else if (bearing < 0) {
+        turnDirection = 'counterclockwise (to your left)';
+    } else {
+        turnDirection = 'straight ahead';
+    }
+
+    // Step 1: Orientation/Turning instruction
+    if (Math.abs(bearing) > 15) {
+        let turnText = '';
+
+        if (clockPos === 12) {
+            turnText = 'Face straight ahead (12 o\'clock position)';
+        } else if (clockPos === 3) {
+            turnText = 'Turn directly to your right to face 3 o\'clock';
+        } else if (clockPos === 6) {
+            turnText = 'Turn around completely to face 6 o\'clock (opposite direction)';
+        } else if (clockPos === 9) {
+            turnText = 'Turn directly to your left to face 9 o\'clock';
+        } else if (clockPos === 1 || clockPos === 2) {
+            turnText = `Turn slightly to your right to face ${clockPos} o'clock`;
+        } else if (clockPos === 4 || clockPos === 5) {
+            turnText = `Turn to your right to face ${clockPos} o'clock`;
+        } else if (clockPos === 7 || clockPos === 8) {
+            turnText = `Turn to your left to face ${clockPos} o'clock`;
+        } else if (clockPos === 10 || clockPos === 11) {
+            turnText = `Turn slightly to your left to face ${clockPos} o'clock`;
+        }
+
+        steps.push({
+            icon: '🔄',
+            text: turnText,
+            distance: null,
+            details: null
+        });
+    } else {
+        // Minimal or no turn needed
+        steps.push({
+            icon: '➡️',
+            text: 'Continue in your current direction',
+            distance: null,
+            details: null
+        });
+    }
+
+    // Step 2: Walking instruction
+    let walkText = '';
+    let distanceText = '';
+
+    if (distance < 1.0) {
+        walkText = 'Take a few steps forward';
+        distanceText = `Walk ${distance.toFixed(1)} meter${distance < 1.1 ? '' : 's'}`;
+    } else if (distance < 3.0) {
+        walkText = 'Walk forward a short distance';
+        distanceText = `Walk ${distance.toFixed(1)} meters`;
+    } else if (distance < 10.0) {
+        walkText = 'Walk forward';
+        distanceText = `Walk ${distance.toFixed(0)} meters`;
+    } else {
+        walkText = 'Walk forward a longer distance';
+        distanceText = `Walk approximately ${Math.round(distance/5)*5} meters`;
+    }
+
+    steps.push({
+        icon: '🚶',
+        text: walkText,
+        distance: distanceText,
+        details: null
+    });
+
+    // Step 3: Arrival confirmation - simplified
+    steps.push({
+        icon: '🎯',
+        text: 'You will arrive at the target product',
+        distance: null,
+        details: null
+    });
+
+    return steps;
 }
 
 /**

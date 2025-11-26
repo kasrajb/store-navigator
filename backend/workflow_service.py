@@ -150,7 +150,7 @@ class WorkflowService:
             try:
                 # Determine which image to use for localization
                 if image_path:
-                    # Use the provided uploaded image (vision pipeline integration)
+                    # Use the provided uploaded image (webapp integration)
                     logger.info(f"Using uploaded image for localization: {image_path}")
                     target_image_path = image_path
                 else:
@@ -170,12 +170,19 @@ class WorkflowService:
                         if localization_result and localization_result.get("localization_successful"):
                             logger.info("Localization completed successfully via API")
                             
+                            # CRITICAL: API response already contains GLOBAL coordinates
+                            user_x = localization_result.get("x", 0)
+                            user_y = localization_result.get("y", 0)
+                            user_z = localization_result.get("z", 0)
+                            
+                            logger.info(f"User position from API localization: X={user_x:.3f}, Y={user_y:.3f}, Z={user_z:.3f}")
+                            
                             # Format the API response into the expected structure
                             formatted_localization = {
                                 "position": {
-                                    "x": localization_result.get("x", 0),
-                                    "y": localization_result.get("y", 0),
-                                    "z": localization_result.get("z", 0)
+                                    "x": user_x,
+                                    "y": user_y,
+                                    "z": user_z
                                 },
                                 "orientation": {
                                     "roll": localization_result.get("roll", 0),
@@ -206,12 +213,23 @@ class WorkflowService:
                     if localization_result and localization_result.get("localization_successful"):
                         logger.info("Localization completed successfully")
                         
+                        # CRITICAL: Extract GLOBAL coordinates from localization result
+                        # rtabmap_service.process_image() returns GLOBAL coordinates directly
+                        user_x = localization_result.get("x", 0)
+                        user_y = localization_result.get("y", 0)
+                        user_z = localization_result.get("z", 0)
+                        
+                        # Validate coordinates are realistic (not rotation matrix values)
+                        logger.info(f"User position from localization: X={user_x:.3f}, Y={user_y:.3f}, Z={user_z:.3f}")
+                        if abs(user_x) < 1.0 and abs(user_y) < 1.0 and abs(user_z) < 0.1:
+                            logger.warning(f"⚠️ User coordinates look like rotation matrix values, not global! X={user_x}, Y={user_y}")
+                        
                         # Format localization results for API response
                         formatted_localization = {
                             "position": {
-                                "x": localization_result.get("x", 0),
-                                "y": localization_result.get("y", 0),
-                                "z": localization_result.get("z", 0)
+                                "x": user_x,
+                                "y": user_y,
+                                "z": user_z
                             },
                             "orientation": {
                                 "roll": localization_result.get("roll", 0),
@@ -229,6 +247,7 @@ class WorkflowService:
                     else:
                         logger.warning("Localization failed or returned invalid results")
                         formatted_localization = None
+                        localization_elapsed = (time.time() - localization_start_time) * 1000
                         workflow_status = "localization_failed"
                         success = False
                     
@@ -244,7 +263,7 @@ class WorkflowService:
             nearest_frame_id = None
             total_distance_to_target = None
             multiple_frames_found = len(formatted_search_results) > 1
-            route_details = None  # NEW: Route details with intermediate frames
+            # route_details = None  # NEW: Route details with intermediate frames - COMMENTED OUT FOR WEBAPP ONLY
             
             if success and formatted_localization and formatted_search_results:
                 try:
@@ -279,7 +298,8 @@ class WorkflowService:
                         # Update search results with distance information
                         formatted_search_results = navigation_data["all_frames_with_distances"]
                         
-                        # NEW: Generate route details with intermediate frames
+                        # NEW: Generate route details with intermediate frames - COMMENTED OUT FOR WEBAPP ONLY
+                        """
                         try:
                             from test_frame_extraction import generate_route_details
                             
@@ -315,6 +335,7 @@ class WorkflowService:
                             logger.warning(f"Failed to generate route details: {e}")
                             # Don't fail the entire workflow if route generation fails
                             route_details = None
+                        """
                         
                 except Exception as e:
                     logger.warning(f"Failed to calculate navigation guidance: {e}")
@@ -337,7 +358,7 @@ class WorkflowService:
                 "search_results": formatted_search_results,
                 "localization_results": formatted_localization,
                 "navigation_guidance": navigation_guidance,
-                "route_details": route_details,  # NEW: Intermediate frames with images
+                # "route_details": route_details,  # NEW: Intermediate frames with images - COMMENTED OUT FOR WEBAPP ONLY
                 "nearest_frame_id": nearest_frame_id,
                 "total_distance_to_target": total_distance_to_target,
                 "multiple_frames_found": multiple_frames_found,

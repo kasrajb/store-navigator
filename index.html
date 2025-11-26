@@ -98,12 +98,6 @@
                     </div>
                 </div>
 
-                <div class="map-container">
-                    <div class="store-map" id="store-map">
-                        <!-- Map will be dynamically generated -->
-                    </div>
-                </div>
-
                 <!-- Localization Section -->
                 <div class="localization-container">
                     <h3 class="localization-title">📍 Find Your Location</h3>
@@ -132,46 +126,47 @@
                         <div class="spinner"></div>
                         <p class="loading-text">Processing your location...</p>
                     </div>
-
-                    <!-- Localization Results Display -->
-                    <div class="localization-results" id="localization-results" style="display: none;">
-                        <h4 class="results-header">
-                            <span class="status-badge" id="status-badge">✓ Success</span>
-                            Localization Results
-                        </h4>
-                        
-                        <!-- Position Data -->
-                        <div class="result-section">
-                            <h5 class="section-title">📌 Your Position</h5>
-                            <div class="data-grid">
-                                <div class="data-item">
-                                    <span class="data-label">X:</span>
-                                    <span class="data-value" id="position-x">--</span>
-                                </div>
-                                <div class="data-item">
-                                    <span class="data-label">Y:</span>
-                                    <span class="data-value" id="position-y">--</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Error Display -->
-                    <div class="localization-error" id="localization-error" style="display: none;">
-                        <h4 class="error-header">
-                            <span class="status-badge error">✗ Error</span>
-                            Localization Failed
-                        </h4>
-                        <p class="error-message" id="error-message">--</p>
-                        <button class="retry-button" id="retry-button">Try Again</button>
-                    </div>
                 </div>
 
+                <!-- Directions Section (moved up) -->
                 <div class="directions-container">
                     <h3 class="directions-title">Turn-by-Turn Directions</h3>
                     <div class="directions-list" id="directions-list">
                         <!-- Directions will be dynamically generated -->
                     </div>
+                </div>
+
+                <!-- Localization Results Display (moved down) -->
+                <div class="localization-results" id="localization-results" style="display: none;">
+                    <h4 class="results-header">
+                        <span class="status-badge" id="status-badge">✓ Success</span>
+                        Localization Results
+                    </h4>
+                    
+                    <!-- Position Data -->
+                    <div class="result-section">
+                        <h5 class="section-title">📍 Your Position</h5>
+                        <div class="data-grid">
+                            <div class="data-item">
+                                <span class="data-label">X:</span>
+                                <span class="data-value" id="position-x">--</span>
+                            </div>
+                            <div class="data-item">
+                                <span class="data-label">Y:</span>
+                                <span class="data-value" id="position-y">--</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error Display -->
+                <div class="localization-error" id="localization-error" style="display: none;">
+                    <h4 class="error-header">
+                        <span class="status-badge error">✗ Error</span>
+                        Localization Failed
+                    </h4>
+                    <p class="error-message" id="error-message">--</p>
+                    <button class="retry-button" id="retry-button">Try Again</button>
                 </div>
 
                 <!-- Additional Info Section (Compact) -->

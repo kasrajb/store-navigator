@@ -288,10 +288,14 @@ class RTABMapService:
                 logger.warning(f"Skipping node {node_id}: Unknown pose data type: {type(pose_data)}")
                 return None
 
-            r11, r21, r31 = values[0], values[1], values[2]
-            r12, r22, r32 = values[3], values[4], values[5]
-            r13, r23, r33 = values[6], values[7], values[8]
-            tx, ty, tz = values[9], values[10], values[11]
+            # RTAB-Map Pose Format (12 values):
+            # [r11 r12 r13] x y z [r21 r22 r23] [r31 r32 r33]
+            #  0   1   2   3 4 5  6   7   8   9  10  11
+            # Correct parsing:
+            r11, r12, r13 = values[0], values[1], values[2]      # Row 1 of rotation matrix
+            tx, ty, tz = values[3], values[4], values[5]          # Translation (x, y, z)
+            r21, r22, r23 = values[6], values[7], values[8]      # Row 2 of rotation matrix
+            r31, r32, r33 = values[9], values[10], values[11]    # Row 3 of rotation matrix
             
             logger.debug(f"Translation values for node {node_id}: tx={tx}, ty={ty}, tz={tz}")
             
@@ -600,28 +604,43 @@ class RTABMapService:
                 if final_pose_data:
                     pic_id_matched = final_pose_data.get("pic_id")
                     if pic_id_matched is not None and final_pose_data.get("localization_successful"):
-                        logger.info(f"Attempting to retrieve stored pose for pic_id {pic_id_matched}")
+                        logger.info(f"Attempting to retrieve stored GLOBAL pose for pic_id {pic_id_matched}")
                         stored_pose = await self.get_stored_node_pose(pic_id_matched)
                         if stored_pose:
-                            # Use the stored pose and add the additional metadata
-                            stored_pose["pic_id"] = pic_id_matched
-                            stored_pose["localization_successful"] = True
-                            stored_pose["hypothesis_value"] = final_pose_data.get("hypothesis_value")
-                            final_pose_data = stored_pose
-                            logger.info(f"Successfully retrieved stored pose: {stored_pose}")
+                            # Use the stored GLOBAL pose and add the additional metadata
+                            # CRITICAL: stored_pose contains GLOBAL coordinates from ObjMeta
+                            logger.info(f"Retrieved GLOBAL coordinates: X={stored_pose.get('x'):.3f}, Y={stored_pose.get('y'):.3f}, Z={stored_pose.get('z'):.3f}")
+                            
+                            # Build result with GLOBAL coordinates
+                            final_pose_data = {
+                                "localization_successful": True,
+                                "pic_id": pic_id_matched,
+                                "hypothesis_value": final_pose_data.get("hypothesis_value"),
+                                # GLOBAL POSITION (from ObjMeta database)
+                                "x": stored_pose.get("x", 0),
+                                "y": stored_pose.get("y", 0),
+                                "z": stored_pose.get("z", 0),
+                                # GLOBAL ORIENTATION
+                                "roll": stored_pose.get("roll", 0),
+                                "pitch": stored_pose.get("pitch", 0),
+                                "yaw": stored_pose.get("yaw", 0),
+                                # OBJECT METADATA
+                                "objects": stored_pose.get("objects", ""),
+                                # PROCESSING METADATA
+                                "image_name": image_name,
+                                "elapsed_ms": int((time.perf_counter() - start_time_total) * 1000)
+                            }
+                            logger.info(f"Successfully retrieved GLOBAL pose for frame {pic_id_matched}")
+                            return final_pose_data
                         else:
-                            logger.error(f"Failed to get stored pose for pic_id {pic_id_matched}")
+                            logger.error(f"Failed to get GLOBAL pose for pic_id {pic_id_matched}")
                             return {
-                                "error": f"Failed to retrieve coordinates for matched image {pic_id_matched}",
+                                "error": f"Failed to retrieve GLOBAL coordinates for matched image {pic_id_matched}",
                                 "image_name": image_name,
                                 "elapsed_ms": int((time.perf_counter() - start_time_total) * 1000)
                             }
                 
-                    # Add metadata to the final result
-                    final_pose_data["image_name"] = image_name
-                    final_pose_data["elapsed_ms"] = int((time.perf_counter() - start_time_total) * 1000)
-                    logger.info(f"Successfully processed {image_name} in {final_pose_data['elapsed_ms']}ms. Final pose: {final_pose_data}")
-                    return final_pose_data
+                    raise RuntimeError(f"No valid localization match found for {image_name}")
 
                 raise RuntimeError(f"Failed to get localization results for {image_name}.")
 

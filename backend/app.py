@@ -81,14 +81,14 @@ class RouteFrame(BaseModel):
     position: Dict[str, float] = Field(..., description="2D position coordinates in meters", example={"x": 4.5, "y": -12.3})
     distance_from_start: float = Field(..., description="Distance from user's starting position in meters", example=8.5)
 
-class RouteDetails(BaseModel):
-    """Model representing complete route information with intermediate frames."""
-    total_frames: int = Field(..., description="Total number of frames in route", example=6)
-    route_distance: float = Field(..., description="Total distance from start to end in meters", example=18.5)
-    frame_extraction_success: bool = Field(..., description="Whether all frame images were extracted successfully")
-    frames: List[RouteFrame] = Field(..., description="Ordered list of frames from user location to target")
-    images: Optional[List[Optional[str]]] = Field(default=[], description="Simple array of Base64-encoded images (without metadata) for vision pipeline processing")
-    error_message: Optional[str] = Field(None, description="Error message if frame extraction failed")
+# class RouteDetails(BaseModel):  # COMMENTED OUT FOR WEBAPP ONLY - N8N workflow integration
+#     """Model representing complete route information with intermediate frames."""
+#     total_frames: int = Field(..., description="Total number of frames in route", example=6)
+#     route_distance: float = Field(..., description="Total distance from start to end in meters", example=18.5)
+#     frame_extraction_success: bool = Field(..., description="Whether all frame images were extracted successfully")
+#     frames: List[RouteFrame] = Field(..., description="Ordered list of frames from user location to target")
+#     images: Optional[List[Optional[str]]] = Field(default=[], description="Simple array of Base64-encoded images (without metadata) for webapp processing")
+#     error_message: Optional[str] = Field(None, description="Error message if frame extraction failed")
 
 class SearchLocalizeResponse(BaseModel):
     """Response model for the search-and-localize endpoint."""
@@ -96,7 +96,7 @@ class SearchLocalizeResponse(BaseModel):
     search_results: List[SearchResult] = Field(..., description="List of objects found matching the search term")
     localization_results: Optional[LocalizationResult] = Field(None, description="Localization data if successful")
     navigation_guidance: Optional[NavigationGuidance] = Field(None, description="Directional guidance to nearest object")
-    route_details: Optional[RouteDetails] = Field(None, description="Intermediate frames with images along the route for landmark-based navigation")
+    # route_details: Optional[RouteDetails] = Field(None, description="Intermediate frames with images along the route for landmark-based navigation")  # COMMENTED OUT FOR WEBAPP ONLY
     nearest_frame_id: Optional[int] = Field(None, description="ID of the nearest frame selected for navigation")
     total_distance_to_target: Optional[float] = Field(None, description="Distance to the nearest target in meters")
     multiple_frames_found: bool = Field(default=False, description="Whether multiple frames contain the object")
@@ -254,8 +254,7 @@ async def search_and_localize(
     Integrated endpoint that searches for an object and performs localization with an uploaded image.
     
     This endpoint combines the functionality of product search with 
-    RTAB-Map localization in a single automated workflow, now accepting
-    both file uploads and Base64-encoded images from the vision pipeline.
+    RTAB-Map localization in a single automated workflow for webapp integration.
     
     **Workflow Steps:**
     1. Receive and validate uploaded image (file or Base64)
@@ -266,10 +265,9 @@ async def search_and_localize(
     6. Return current pose, detected objects, and navigation instructions
     
     **Use Cases:**
-    - Vision pipeline integration: Send captured images with object queries
+    - Webapp integration: Send captured images with object queries from mobile devices
     - Real-time navigation: Upload current view and get directions to target
-    - Remote object localization with dynamic images
-    - Base64 string integration for web/mobile clients
+    - Mobile object localization with dynamic images
     
     **Image Requirements:**
     - Format: JPEG, PNG, or BMP

@@ -94,16 +94,16 @@ def calculate_direction(user_pos: Dict[str, float],
     dx = target_pos['x'] - user_pos['x']
     dy = target_pos['y'] - user_pos['y']
     
-    # Y-AXIS INVERSION ENABLED FOR IGA-V2.db COORDINATE SYSTEM
+    # Y-AXIS INVERSION RE-ENABLED - RTAB-Map coordinate system correction
     # RTAB-Map: Moving forward/east → Y becomes MORE NEGATIVE
     # Navigation expects: Moving forward → Positive Y
     # Solution: Negate dy AND yaw before bearing calculation
-    dy = -dy
-    corrected_yaw = -user_yaw
+    dy = -dy  # RE-ENABLED - required for correct RTAB-Map coordinate transformation
+    corrected_yaw = -user_yaw  # RE-ENABLED - required for correct RTAB-Map coordinate transformation
     
     logger.info(f"User Position: x={user_pos['x']:.2f}, y={user_pos['y']:.2f}")
     logger.info(f"Target Position: x={target_pos['x']:.2f}, y={target_pos['y']:.2f}")
-    logger.info(f"Vector Components: dx={dx:.2f}, dy={dy:.2f} (Y-axis inversion: ENABLED for IGA-V2.db)")
+    logger.info(f"Vector Components: dx={dx:.2f}, dy={dy:.2f} (Y-axis inversion: ENABLED)")
     logger.info(f"User Yaw (orientation): {user_yaw:.4f} radians = {math.degrees(user_yaw):.1f}°")
     logger.info(f"Corrected Yaw: {corrected_yaw:.4f} radians = {math.degrees(corrected_yaw):.1f}° (Y-axis inverted)")
     
@@ -114,7 +114,7 @@ def calculate_direction(user_pos: Dict[str, float],
     logger.info(f"Absolute Target Bearing: {target_bearing_rad:.4f} radians = {target_bearing_deg:.1f}° (Y-axis inverted)")
     
     # Calculate relative bearing (relative to user's current orientation)
-    # Use corrected_yaw (which IS inverted for IGA-V2.db)
+    # Use corrected_yaw (which IS inverted for RTAB-Map coordinate system)
     relative_bearing_rad = target_bearing_rad - corrected_yaw
     
     logger.info(f"Relative Bearing (before normalization): {relative_bearing_rad:.4f} radians = {math.degrees(relative_bearing_rad):.1f}° (with Y-axis inversion)")
@@ -532,7 +532,6 @@ def format_navigation_display(navigation_data: Dict[str, Any]) -> str:
     nav = navigation_data['navigation_guidance']
     
     output = "\n--- Navigation Guidance ---\n"
-    output += f"🎯 Target: {nav['target_object']} (Frame {nav['target_frame_id']})\n"
     output += f"📍 Direction: {nav['direction']}\n"
     output += f"🧭 Turn Instruction: {nav['turn_instruction']}\n"
     output += f"📏 Distance: {nav['distance']} meters\n"

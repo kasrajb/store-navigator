@@ -30,19 +30,24 @@ def get_frame_global_coordinates(cursor, frame_id: int) -> Optional[Dict]:
     IMPORTANT: Returns global coordinates from RTAB-Map's optimized pose graph,
     NOT relative coordinates from the Node table.
     
+    Metadata format:
+    - NEW (correct): dict with 'objects' list and 'global_pose' dict
+    - OLD (legacy): list of objects only (no coordinates)
+    
     Args:
         cursor: Database cursor
         frame_id: Frame/node ID to query
     
     Returns:
-        dict with keys: x, y, z (global coordinates in meters)
-        None if frame not found or no metadata
+        dict with keys: x, y, z, roll, pitch, yaw (global coordinates in meters)
+        None if frame not found or no global_pose available
     """
     try:
         cursor.execute("SELECT metadata_json FROM ObjMeta WHERE frame_id = ?", (frame_id,))
         result = cursor.fetchone()
         
         if not result or not result[0]:
+            logger.debug(f"No metadata found for frame {frame_id}")
             return None
         
         metadata = json.loads(result[0])
@@ -50,16 +55,28 @@ def get_frame_global_coordinates(cursor, frame_id: int) -> Optional[Dict]:
         # Handle dict structure (new format with global_pose)
         if isinstance(metadata, dict) and 'global_pose' in metadata:
             pose = metadata['global_pose']
-            return {
+            coords = {
                 'x': float(pose['x']),
                 'y': float(pose['y']),
-                'z': float(pose['z'])
+                'z': float(pose['z']),
+                'roll': float(pose.get('roll', 0)),
+                'pitch': float(pose.get('pitch', 0)),
+                'yaw': float(pose.get('yaw', 0))
             }
+            logger.debug(f"Retrieved global_pose for frame {frame_id}: X={coords['x']:.3f}, Y={coords['y']:.3f}, Z={coords['z']:.3f}")
+            return coords
         
-        # If old format (list of objects), return None - needs database update
+        # Legacy format (list of objects only) - no coordinates available
+        if isinstance(metadata, list):
+            logger.warning(f"Frame {frame_id} has legacy metadata format (objects only, no global_pose)")
+            return None
+        
+        # Unknown format
+        logger.warning(f"Frame {frame_id} has unknown metadata format: {type(metadata)}")
         return None
         
-    except (json.JSONDecodeError, KeyError, TypeError):
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        logger.error(f"Error parsing global coordinates for frame {frame_id}: {e}")
         return None
 
 
